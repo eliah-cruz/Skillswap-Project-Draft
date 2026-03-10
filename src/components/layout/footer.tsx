@@ -25,7 +25,7 @@ export default function Footer({ state }: any) {
                 Team
                 <span className="absolute -bottom-1.5 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
               </Link> 
-              <Link href="https://github.com/eliah-cruz/Webproject" target="_blank" className="relative group text-slate-500 text-xs font-black tracking-widest hover:text-indigo-600 transition-colors">
+              <Link href="https://github.com/eliah-cruz/Skillswap-Project-Draft" target="_blank" className="relative group text-slate-500 text-xs font-black tracking-widest hover:text-indigo-600 transition-colors">
                 GitHub
                 <span className="absolute -bottom-1.5 left-0 w-0 h-0.5 bg-indigo-600 transition-all duration-300 group-hover:w-full"></span>
               </Link>

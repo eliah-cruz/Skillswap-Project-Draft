@@ -1,28 +1,14 @@
-Here is the updated `README.md` with the **Gmail SMTP** configuration properly integrated into the Backend Roadmap. Since your frontend has a "Get Magic Link" button and an "Email Notifications" toggle in the settings, configuring the SMTP server is a crucial step for the backend team to handle authentication and alerts.
+# ⚡ SkillSwap: Teach & Learn
 
-***
-
-```markdown
-# ⚡ SkillSwap: Peer-to-Peer Learning Marketplace
-
-<div align="center">
-  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
-  <img src="https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white" alt="Socket.io" />
-</div>
-
-<br/>
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white) ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white) ![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=for-the-badge&logo=socket.io&logoColor=white)
 
 > **Learn. Swap. Grow.** SkillSwap is a state-aware discovery platform that connects individuals based on mutual learning interests, solving the "Double Coincidence of Wants" in peer-to-peer knowledge exchange.
 
 ---
 
 ## 🎥 Video Preview
-*(Placeholder for your video demo)*
-[![SkillSwap Demo](https://img.youtube.com/vi/YOUR_VIDEO_ID/maxresdefault.jpg)](https://www.youtube.com/watch?v=YOUR_VIDEO_ID)
-> **Click the image above to watch the full project demonstration.**
+
+https://github.com/user-attachments/assets/519f2492-aae7-47cf-b912-d22fc894f111
 
 ---
 
@@ -88,7 +74,7 @@ Currently, the frontend runs completely in the browser using `localStorage` to s
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/skillswap.git
+   git clone https://github.com/eliah-cruz/Skillswap-Project-Draft
    cd skillswap
    ```
 
@@ -153,10 +139,3 @@ Once the backend is live:
 2. Replace local state initialization with `useEffect` fetch calls to your Supabase/Node.js endpoints.
 3. Hook up the auth flow to Supabase's `supabase.auth.signInWithOtp({ email })`.
 4. Replace the `apiStubs.sendMessageToSocket` with actual `socket.emit('send_message', data)`.
-
----
-<div align="center">
-  <p><b>Designed and Developed for Software Engineering Design Project</b></p>
-  <p><i>Qarlo Banguilan • Eliah Denise Cruz • Antonio Rafael Torres</i></p>
-</div>
-```

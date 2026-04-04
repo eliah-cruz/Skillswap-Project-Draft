@@ -111,7 +111,7 @@ export default function UserProfile({ state, setters, actions }: any) {
           </div>
 
           <div className="pt-6 border-t-2 border-slate-100">
-            <button type="submit" className="w-full bg-indigo-600 text-white p-5 rounded-2xl font-black uppercase tracking-widest hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-200">
+            <button type="submit" className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-600 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-slate-200">
               <Save size={20} /> Save Profile Changes
             </button>
           </div>

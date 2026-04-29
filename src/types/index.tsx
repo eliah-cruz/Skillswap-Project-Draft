@@ -5,18 +5,29 @@ export interface Message {
   timestamp: string;
 }
 
+export interface Review {
+  id: string;
+  reviewer: string;
+  rating: number;
+  comment: string;
+}
+
 export type Match = {
   id: number; 
   name: string;
   teaching: string;
   needs: string;
   rating: number;
+  reviewCount: number;
+  reviews: Review[];
   avatar: string;
   status: 'Online' | 'Away' | 'Offline';
   category: string;
   title: string;
   image?: string;
   availability?: string;
+  matchScore?: number;
+  isMutualMatch?: boolean;
 };
 
 export type Category = {

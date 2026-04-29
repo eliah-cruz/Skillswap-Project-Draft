@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { matches } from "../constants/data";
-import { Match, Message, UserProfile, UserSettings } from "../types";
+import { Match, Message, UserProfile, UserSettings, Review } from "../types";
 
 interface SkillSwapState {
   loading: boolean;
@@ -14,6 +14,7 @@ interface SkillSwapState {
   userEmail: string;
   showScroll: boolean;
   showDirectory: boolean;
+  addingSkillType: 'teaching' | 'learning';
   showChat: boolean;
   activeTab: string;
   activeChatPartner: Match | null;
@@ -56,6 +57,7 @@ export function useSkillSwap() {
   
   const [showScroll, setShowScroll] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
+  const [addingSkillType, setAddingSkillType] = useState<'teaching' | 'learning'>('teaching');
   
   const [activeTab, setActiveTab] = useState("hub"); 
   const [showChat, setShowChat] = useState(false);
@@ -73,38 +75,60 @@ export function useSkillSwap() {
   const [searchQuery, setSearchQuery] = useState(""); 
   const [sortBy, setSortBy] = useState("Recommended");
   const [toast, setToast] = useState<string | null>(null);
+  
+  const [allMatches, setAllMatches] = useState<Match[]>(matches);
 
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    bio: "",
-    title: "",
-    location: "Philippines", 
-    experienceLevel: "Intermediate",
-    availability: "Flexible"
+    bio: "", title: "", location: "Philippines", experienceLevel: "Intermediate", availability: "Flexible"
   });
 
   const [userSettings, setUserSettings] = useState<UserSettings>({
-    emailNotifications: true,
-    showOnlineStatus: true,
-    profileVisibility: 'public'
+    emailNotifications: true, showOnlineStatus: true, profileVisibility: 'public'
   });
 
   const apiStubs = {
-    updateProfileData: async (data: Partial<UserProfile>) => {
-      console.log("Saving Profile to DB:", data);
-      return new Promise(resolve => setTimeout(() => resolve({ success: true }), 500));
-    },
-    updateSettingsData: async (data: Partial<UserSettings>) => {
-      console.log("Saving Settings to DB:", data);
-      return new Promise(resolve => setTimeout(() => resolve({ success: true }), 500));
-    },
-    sendMessageToSocket: async (receiverId: number, messageText: string) => {
-      console.log(`Sending to WebSocket -> Receiver: ${receiverId}, Msg: ${messageText}`);
-    }
+    updateProfileData: async (data: Partial<UserProfile>) => new Promise(resolve => setTimeout(() => resolve({ success: true }), 500)),
+    updateSettingsData: async (data: Partial<UserSettings>) => new Promise(resolve => setTimeout(() => resolve({ success: true }), 500)),
+    sendMessageToSocket: async (receiverId: number, messageText: string) => console.log(`Sending to WebSocket -> Receiver: ${receiverId}`)
   };
 
   const triggerToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
+  };
+
+  const syncLocalUsersToMatches = (currentEmail: string) => {
+    const phoneBook = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
+    const localGeneratedMatches: Match[] = [];
+    
+    let idCounter = 1000; 
+    
+    for (const email in phoneBook) {
+      if (email === currentEmail) continue; 
+      
+      const u = phoneBook[email];
+      
+      // DYNAMIC ONLINE STATUS LOGIC:
+      // User is ONLY online if they are logged in AND haven't hidden their status in settings.
+      const isVisibleOnline = u.isCurrentlyLoggedIn !== false && u.settings?.showOnlineStatus !== false;
+      
+      localGeneratedMatches.push({
+        id: idCounter++,
+        name: u.name || "New User",
+        teaching: u.skills && u.skills.length > 0 ? u.skills.join(", ") : "Exploring",
+        needs: u.needs && u.needs.length > 0 ? u.needs.join(", ") : "Discovering",
+        rating: 5.0, 
+        reviewCount: 0,
+        reviews: [],
+        avatar: u.name ? u.name.substring(0, 2).toUpperCase() : "U",
+        status: isVisibleOnline ? 'Online' : 'Offline', // <-- DYNAMIC STATUS
+        category: "Community", 
+        title: u.profile?.title || "New Member",
+        availability: u.profile?.availability || "Flexible"
+      });
+    }
+
+    setAllMatches([...matches, ...localGeneratedMatches]);
   };
 
   const saveToPhoneBook = (updates: any) => {
@@ -129,8 +153,9 @@ export function useSkillSwap() {
 
     phoneBook[currentEmail] = updatedData;
     localStorage.setItem("skillswap_users_list", JSON.stringify(phoneBook));
-    
     if (updates.name && updates.name !== "User") setUserName(updates.name);
+
+    syncLocalUsersToMatches(currentEmail);
   };
 
   const loadUserData = (email: string) => {
@@ -154,85 +179,93 @@ export function useSkillSwap() {
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     setIsSubmitting(true);
-
     const formData = new FormData(e.currentTarget);
     const nameFromForm = formData.get("fullName")?.toString();
     const emailFromForm = formData.get("email")?.toString() || "demo@user.com";
-    
     const phoneBook = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
     const userExists = !!phoneBook[emailFromForm];
 
     setTimeout(() => {
       if (!isLoginView && userExists) {
-        setIsSubmitting(false);
-        triggerToast("Email already exists. Please log in.");
-        setIsLoginView(true);
-        return;
+        setIsSubmitting(false); triggerToast("Email already exists. Please log in."); setIsLoginView(true); return;
       }
-
       if (isLoginView && !userExists) {
-        setIsSubmitting(false);
-        triggerToast("Account not found. Please sign up first.");
-        setIsLoginView(false); 
-        return;
+        setIsSubmitting(false); triggerToast("Account not found. Please sign up first."); setIsLoginView(false); return;
       }
-
       setUserEmail(emailFromForm);
       localStorage.setItem("skillswap_logged_in", "true");
       localStorage.setItem("skillswap_active_email", emailFromForm);
 
+      // Explicitly mark user as logged in inside the mock database
       if (!isLoginView) {
         setUserName(nameFromForm || "User");
-        saveToPhoneBook({ email: emailFromForm, name: nameFromForm || "User" });
+        saveToPhoneBook({ email: emailFromForm, name: nameFromForm || "User", isCurrentlyLoggedIn: true });
       } else {
         loadUserData(emailFromForm);
+        const pb = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
+        if(pb[emailFromForm]) {
+            pb[emailFromForm].isCurrentlyLoggedIn = true;
+            localStorage.setItem("skillswap_users_list", JSON.stringify(pb));
+        }
       }
-
-      setIsLoggedIn(true);
-      setIsSubmitting(false);
-      triggerToast("Welcome to SkillSwap!");
+      
+      syncLocalUsersToMatches(emailFromForm);
+      
+      setIsLoggedIn(true); setIsSubmitting(false); triggerToast("Welcome to SkillSwap!");
     }, 800);
   };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    
+    // Explicitly mark user as OFFLINE in the mock database upon logout
+    const activeEmail = localStorage.getItem("skillswap_active_email");
+    if (activeEmail) {
+      const phoneBook = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
+      if (phoneBook[activeEmail]) {
+        phoneBook[activeEmail].isCurrentlyLoggedIn = false;
+        localStorage.setItem("skillswap_users_list", JSON.stringify(phoneBook));
+      }
+    }
+
     setTimeout(() => {
-      localStorage.removeItem("skillswap_logged_in");
+      localStorage.removeItem("skillswap_logged_in"); 
       localStorage.removeItem("skillswap_active_email");
-      setUserName("User");
-      setMySkills([]);
+      
+      setUserName("User"); 
+      setMySkills([]); 
       setMyNeeds([]); 
-      setChatHistory({});
-      setActiveChatIDs([]);
+      setChatHistory({}); 
+      setActiveChatIDs([]); 
       setBlockedUsers([]);
-      setIsLoggedIn(false);
-      setActiveTab("hub");
-      setIsLoggingOut(false);
+      
+      setSearchQuery("");
+      setActiveCategoryFilter("All");
+      setSortBy("Recommended");
+      setOnlineOnly(false);
+      
+      setShowChat(false);
+      setActiveChatPartner(null);
+      setOnboardingCategory(null);
+      
+      setIsLoggedIn(false); 
+      setActiveTab("hub"); 
+      setIsLoggingOut(false); 
       triggerToast("Logged out.");
     }, 600);
   };
 
   const openRecentChats = () => {
-    if (activeChatIDs.length === 0) {
-      triggerToast("No recent chats yet. Start swapping!");
-      setShowDirectory(true); 
-      return;
-    }
-    setActiveTab("chat"); 
-    setShowChat(true); 
+    if (activeChatIDs.length === 0) { triggerToast("No recent chats yet. Start swapping!"); setShowDirectory(true); return; }
+    setActiveTab("chat"); setShowChat(true); 
   };
 
   const openSpecificChat = (partner: Match) => {
-    setActiveChatPartner(partner);
-    setShowChat(true);
-    setActiveTab("chat");
-    
+    setActiveChatPartner(partner); setShowChat(true); setActiveTab("chat");
     if (!activeChatIDs.includes(partner.id)) {
       const newList = [...activeChatIDs, partner.id];
-      setActiveChatIDs(newList);
-      saveToPhoneBook({ chatList: newList });
+      setActiveChatIDs(newList); saveToPhoneBook({ chatList: newList });
     }
-    
     setMessages(chatHistory[partner.id] || []);
   };
 
@@ -240,239 +273,174 @@ export function useSkillSwap() {
     if (!activeChatPartner) return;
     const partnerId = activeChatPartner.id;
     const updatedHistory = { ...chatHistory, [partnerId]: newMsgs };
-    setChatHistory(updatedHistory);
-    setMessages(newMsgs);
-    saveToPhoneBook({ chatHistory: updatedHistory });
+    setChatHistory(updatedHistory); setMessages(newMsgs); saveToPhoneBook({ chatHistory: updatedHistory });
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!chatInput.trim() || !activeChatPartner) return;
     
-    const partnerId = activeChatPartner.id;
-    const msgText = chatInput;
-    
-    const myNewMsg: Message = { 
-      id: Date.now(),
-      sender: 'me', 
-      text: msgText,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
-    };
-
+    const myNewMsg: Message = { id: Date.now(), sender: 'me', text: chatInput, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
     const updatedList = [...messages, myNewMsg];
-    saveMessages(updatedList);
-    setChatInput(""); 
+    saveMessages(updatedList); setChatInput(""); 
     
-    await apiStubs.sendMessageToSocket(partnerId, msgText);
-
+    await apiStubs.sendMessageToSocket(activeChatPartner.id, chatInput);
     setIsPartnerTyping(true);
     setTimeout(() => {
-      const partnerReply: Message = { 
-        id: Date.now() + 1,
-        sender: 'them', 
-        text: `That sounds like a plan! I'm usually free on weekends.`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      
-      const finalChat = [...updatedList, partnerReply];
-      saveMessages(finalChat);
-      setIsPartnerTyping(false);
+      const partnerReply: Message = { id: Date.now() + 1, sender: 'them', text: `That sounds like a plan!`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+      saveMessages([...updatedList, partnerReply]); setIsPartnerTyping(false);
     }, 2000);
   };
 
   useEffect(() => {
     const activeEmail = localStorage.getItem("skillswap_active_email");
     const savedLogin = localStorage.getItem("skillswap_logged_in");
-
-    if (activeEmail) {
-      setUserEmail(activeEmail);
-      loadUserData(activeEmail);
+    
+    if (activeEmail) { 
+      setUserEmail(activeEmail); 
+      loadUserData(activeEmail); 
+      syncLocalUsersToMatches(activeEmail); 
+    } else {
+      syncLocalUsersToMatches(""); 
     }
-    if (savedLogin === "true") setIsLoggedIn(true);
 
+    if (savedLogin === "true") setIsLoggedIn(true);
+    
     const handleScroll = () => setShowScroll(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     const timer = setTimeout(() => setLoading(false), 1200);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', handleScroll);
-    };
+    return () => { clearTimeout(timer); window.removeEventListener('scroll', handleScroll); };
   }, []);
 
   const blockUser = (partnerId: number) => {
     if (blockedUsers.includes(partnerId)) return;
     const updated = [...blockedUsers, partnerId];
-    setBlockedUsers(updated);
-    saveToPhoneBook({ blocked: updated }); 
-    setShowChat(false); 
-    setActiveChatPartner(null); 
-    triggerToast("User blocked.");
+    setBlockedUsers(updated); saveToPhoneBook({ blocked: updated }); setShowChat(false); setActiveChatPartner(null);
   };
 
   const unblockUser = (id: number) => {
     const updated = blockedUsers.filter(userId => userId !== id);
-    setBlockedUsers(updated);
-    saveToPhoneBook({ blocked: updated }); 
-    triggerToast("User unblocked!");
+    setBlockedUsers(updated); saveToPhoneBook({ blocked: updated }); triggerToast("User unblocked!");
   };
 
   const addSkill = (skill: string) => {
-    const alreadyHasIt = mySkills.some(s => s.toLowerCase() === skill.toLowerCase());
-    if (alreadyHasIt) {
-      triggerToast(`${skill} is already added!`);
-      return;
-    }
+    if (mySkills.some(s => s.toLowerCase() === skill.toLowerCase())) { triggerToast(`${skill} is already added!`); return; }
     const updated = [...mySkills, skill];
-    setMySkills(updated);
-    setIsVerified(updated.length >= 3);
-    saveToPhoneBook({ skills: updated });
-    triggerToast(`Added ${skill}!`);
+    setMySkills(updated); setIsVerified(updated.length >= 3); saveToPhoneBook({ skills: updated }); triggerToast(`Added ${skill}!`);
   };
 
   const removeSkill = (skill: string) => {
     const updated = mySkills.filter(s => s !== skill);
-    setMySkills(updated);
-    setIsVerified(updated.length >= 3);
-    saveToPhoneBook({ skills: updated });
-    triggerToast(`Removed ${skill}.`);
+    setMySkills(updated); setIsVerified(updated.length >= 3); saveToPhoneBook({ skills: updated }); triggerToast(`Removed ${skill}.`);
+  };
+
+  const addNeed = (skill: string) => {
+    if (myNeeds.some(s => s.toLowerCase() === skill.toLowerCase())) { triggerToast(`${skill} is already in your wishlist!`); return; }
+    const updated = [...myNeeds, skill];
+    setMyNeeds(updated); saveToPhoneBook({ needs: updated }); triggerToast(`Added ${skill} to wishlist!`);
+  };
+
+  const removeNeed = (skill: string) => {
+    const updated = myNeeds.filter(s => s !== skill);
+    setMyNeeds(updated); saveToPhoneBook({ needs: updated }); triggerToast(`Removed ${skill}.`);
   };
 
   const activeChatUsers = useMemo(() => {
-    return matches.filter(m => activeChatIDs.includes(m.id) && !blockedUsers.includes(m.id));
-  }, [activeChatIDs, blockedUsers]);
+    return allMatches.filter(m => activeChatIDs.includes(m.id) && !blockedUsers.includes(m.id));
+  }, [activeChatIDs, blockedUsers, allMatches]);
 
-  // --- START MATCHMAKING LOGIC ---
   const filteredMatches = useMemo(() => {
     const activeNeeds = myNeeds.filter(n => n !== "None" && n !== "");
-
-    let scoredResults = matches
-      .filter(m => !blockedUsers.includes(m.id)) // Hide blocked
+    
+    let scoredResults = allMatches
+      .filter(m => !blockedUsers.includes(m.id))
+      .filter(m => m.rating >= 4.0) 
       .map(person => {
         let score = 0;
-
-        // 1. Check if I can teach them what they want (The Give)
-        const iCanTeachThem = mySkills.some(s => s.toLowerCase() === person.needs.toLowerCase());
-        if (iCanTeachThem) score += 50;
-
-        // 2. Check if they teach what I want (The Take)
-        const theyCanTeachMe = activeNeeds.some(n => n.toLowerCase() === person.teaching.toLowerCase());
-        if (theyCanTeachMe) score += 50;
-
-        // 3. Category match (Common Interests)
-        if (person.category === onboardingCategory?.name) score += 20;
-
-        // 4. Activity Boost
-        if (person.status === 'Online') score += 10;
         
-        // 5. Rating Boost
-        score += (person.rating * 2);
+        const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));
+        const theyCanTeachMe = activeNeeds.some(n => person.teaching.toLowerCase().includes(n.toLowerCase()));
+        const isMutualMatch = iCanTeachThem && theyCanTeachMe;
 
-        return { ...person, matchScore: score };
+        if (iCanTeachThem) score += 50;
+        if (theyCanTeachMe) score += 50;
+        if (person.category === onboardingCategory?.name) score += 20;
+        if (person.status === 'Online') score += 10;
+        score += (person.rating * 2);
+        
+        return { ...person, matchScore: score, isMutualMatch };
       });
 
-    // Apply Search Filter
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
-      scoredResults = scoredResults.filter(m => 
-        m.name.toLowerCase().includes(query) ||
-        m.teaching.toLowerCase().includes(query) ||
-        m.category.toLowerCase().includes(query)
-      );
+      scoredResults = scoredResults.filter(m => m.name.toLowerCase().includes(query) || m.teaching.toLowerCase().includes(query) || m.category.toLowerCase().includes(query));
     }
-
-    // Apply Category/Status Sidebar Filters
+    
     scoredResults = scoredResults.filter(m => {
       const catMatch = activeCategoryFilter === "All" || m.category === activeCategoryFilter;
       const onlineMatch = onlineOnly ? m.status === 'Online' : true;
       return catMatch && onlineMatch;
     });
 
-    // Apply Sorting
     if (sortBy === "Recommended") {
-      scoredResults.sort((a, b) => b.matchScore - a.matchScore);
-    } else if (sortBy === "Top Rated") {
-      scoredResults.sort((a, b) => b.rating - a.rating);
-    } else if (sortBy === "Newest") {
-      scoredResults.sort((a, b) => b.id - a.id);
+      scoredResults.sort((a, b) => {
+        if (a.isMutualMatch && !b.isMutualMatch) return -1;
+        if (!a.isMutualMatch && b.isMutualMatch) return 1;
+        return (b.matchScore || 0) - (a.matchScore || 0);
+      });
     }
+    else if (sortBy === "Top Rated") scoredResults.sort((a, b) => b.rating - a.rating);
+    else if (sortBy === "Newest") scoredResults.sort((a, b) => b.id - a.id);
 
     return scoredResults;
-  }, [mySkills, myNeeds, onlineOnly, activeCategoryFilter, blockedUsers, searchQuery, sortBy, onboardingCategory]);
-  // --- END MATCHMAKING LOGIC ---
+  }, [mySkills, myNeeds, onlineOnly, activeCategoryFilter, blockedUsers, searchQuery, sortBy, onboardingCategory, allMatches]);
 
   const state: SkillSwapState = { 
-    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, 
-    showBioStep, userName, userEmail, showScroll, showDirectory, showChat, 
-    activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, 
-    activeCategoryFilter, searchQuery, sortBy, chatInput, messages, isPartnerTyping, 
-    filteredMatches, activeChatUsers, blockedUsers, 
-    allMatches: matches, year: 2026, toast, isVerified, activeChatIDs,
-    userProfile, userSettings 
+    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, 
+    addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, isPartnerTyping, 
+    filteredMatches, activeChatUsers, blockedUsers, allMatches, year: 2026, toast, isVerified, activeChatIDs, userProfile, userSettings 
   };
 
   const setters = { 
-    setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, 
-    setShowBioStep, setShowDirectory, setShowChat, setActiveTab, 
-    setActiveChatPartner, setMySkills, setMyNeeds, setOnboardingCategory, setOnlineOnly, 
-    setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setMessages: saveMessages, 
-    setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs,
-    setUserProfile, setUserSettings 
+    setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, 
+    setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setMessages: saveMessages, 
+    setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches
   };
 
   const actions = { 
-    handleAuth, handleLogout, triggerToast, addSkill, 
-    removeSkill, saveToPhoneBook, blockUser, unblockUser, 
-    openRecentChats, openSpecificChat, handleSendMessage,
-    clearChat: (partnerId: number) => {
-        const confirmed = window.confirm("Clear all messages with this person? This cannot be undone.");
-        if (confirmed) {
-            const updatedHistory = { ...chatHistory };
-            delete updatedHistory[partnerId];
-            setChatHistory(updatedHistory);
-            setMessages([]);
-            saveToPhoneBook({ chatHistory: updatedHistory });
-            triggerToast("Chat cleared.");
-        }
-    },
+    handleAuth, handleLogout, triggerToast, addSkill, removeSkill, addNeed, removeNeed, saveToPhoneBook, blockUser, unblockUser, openRecentChats, openSpecificChat, handleSendMessage,
+    
     deleteConversation: (partnerId: number) => {
-      const confirmed = window.confirm("Delete conversation? This removes them from your chat list and wipes messages.");
-      if (confirmed) {
         const updatedHistory = { ...chatHistory };
         delete updatedHistory[partnerId];
         const updatedIDs = activeChatIDs.filter(id => id !== partnerId);
-        setChatHistory(updatedHistory);
-        setActiveChatIDs(updatedIDs);
-        setMessages([]);
-        setActiveChatPartner(null);
-        setShowChat(false);
-        saveToPhoneBook({ chatHistory: updatedHistory, chatList: updatedIDs });
-        triggerToast("Conversation deleted.");
-      }
+        setChatHistory(updatedHistory); setActiveChatIDs(updatedIDs); setMessages([]); setActiveChatPartner(null); setShowChat(false);
+        saveToPhoneBook({ chatHistory: updatedHistory, chatList: updatedIDs }); triggerToast("Conversation deleted.");
     },
-    saveNeeds: (newNeeds: string[]) => {
-      setters.setMyNeeds(newNeeds);
-      saveToPhoneBook({ needs: newNeeds });
-    },
+    saveNeeds: (newNeeds: string[]) => { setters.setMyNeeds(newNeeds); saveToPhoneBook({ needs: newNeeds }); },
     reportUser: (id: number) => { 
-      const confirmed = window.confirm("Are you sure you want to report and block this user?");
-      if (confirmed) {
-        actions.blockUser(id); 
-        triggerToast("User reported and blocked."); 
-      }
+      actions.blockUser(id); 
+      triggerToast("User reported and blocked successfully."); 
+    },
+    submitReview: (partnerId: number, rating: number, comment: string) => {
+      setAllMatches(prev => prev.map(m => {
+        if (m.id === partnerId) {
+          const newReview: Review = { id: Date.now().toString(), reviewer: userName, rating, comment };
+          const updatedReviews = [newReview, ...(m.reviews || [])];
+          const newAvg = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
+          return { ...m, reviews: updatedReviews, reviewCount: updatedReviews.length, rating: Number(newAvg.toFixed(1)) };
+        }
+        return m;
+      }));
+      triggerToast("Feedback submitted successfully!");
     },
     saveProfile: async (newData: Partial<UserProfile>) => {
       const merged = { ...userProfile, ...newData };
-      setters.setUserProfile(merged);
-      saveToPhoneBook({ profile: merged });
-      await apiStubs.updateProfileData(merged);
-      triggerToast("Profile updated successfully!");
+      setters.setUserProfile(merged); saveToPhoneBook({ profile: merged }); await apiStubs.updateProfileData(merged); triggerToast("Profile updated successfully!");
     },
     saveSettings: async (newData: Partial<UserSettings>) => {
       const merged = { ...userSettings, ...newData };
-      setters.setUserSettings(merged);
-      saveToPhoneBook({ settings: merged });
-      await apiStubs.updateSettingsData(merged);
-      triggerToast("Settings saved successfully!");
+      setters.setUserSettings(merged); saveToPhoneBook({ settings: merged }); await apiStubs.updateSettingsData(merged); triggerToast("Settings saved successfully!");
     }
   };
 

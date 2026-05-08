@@ -18,11 +18,14 @@ Traditional Online Learning Platforms (OLPs) suffer from up to a 90% attrition r
 Built upon **Social Exchange Theory** and resolving the economic barrier of the **Double Coincidence of Wants**, SkillSwap uses a heuristic proximity matching algorithm to connect users. You teach what you know, and in return, you learn what you need—no currency required.
 
 ### ✨ Key Features
-* **Passwordless Magic Links:** Secure, frictionless login utilizing Gmail SMTP.
-* **Smart Matchmaking Engine:** Filters and scores users based on semantic skill compatibility, active online state, and category preferences.
-* **Stateful Real-Time Messaging:** Integrated chat UI allowing users to coordinate sessions securely without leaving the app.
-* **Onboarding & Profile Management:** Seamless UI for users to curate their "Teachable" and "Desired" skills.
-* **Safety & Trust System:** Built-in features to block, report users, and clear chat histories to maintain a safe learning environment.
+* **🔐 Passwordless Authentication:** Secure, frictionless login and account creation utilizing a "Magic Link" via Gmail SMTP—no passwords required.
+* **🔍 Dynamic Skill Search & Filtering:** Real-time search bar to find peers by name or specific skill, alongside department category filters (Development, Design, Languages, Marketing).
+* **🟢 Online Availability Toggle:** A dedicated switch to filter the matchmaking dashboard to only show peers who are currently online and ready to interact.
+* **🗂️ Match Sorting:** Organize peer recommendations dynamically by "Recommended" (algorithmic matching), "Top Rated," or "Newest."
+* **💬 Stateful Real-Time Messaging:** Built-in chat interface powered by Socket.io, featuring "Online" status, typing indicators, and a persistent safety banner—allowing users to coordinate sessions without leaving the app.
+* **🛡️ User Moderation & Safety Tools:** Built-in safety menu within active chats allowing users to "Clear Chat History," "Delete Conversation," "Block User," or "Report & Block."
+* **⚙️ Profile & Skill Builder:** An intuitive modal-based Skill Directory to easily check off "Teachable" and "Desired" skills, plus comprehensive profile management (Title, Experience Level, Country, Bio).
+* **🔒 Privacy & Account Settings:** User-controlled settings featuring toggles for "Email Notifications" (for offline alerts) and "Show Online Status" to protect digital presence and privacy.
 
 ---
 

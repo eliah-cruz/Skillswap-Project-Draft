@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { matches } from "../constants/data";
+import { matches, categories } from "../constants/data";
 import { Match, Message, UserProfile, UserSettings, Review } from "../types";
 
 interface SkillSwapState {
@@ -27,6 +27,7 @@ interface SkillSwapState {
   sortBy: string;
   chatInput: string;
   messages: Message[];
+  chatHistory: Record<number, Message[]>;
   isPartnerTyping: boolean;
   filteredMatches: Match[];
   activeChatUsers: Match[];
@@ -79,7 +80,7 @@ export function useSkillSwap() {
   const [allMatches, setAllMatches] = useState<Match[]>(matches);
 
   const [userProfile, setUserProfile] = useState<UserProfile>({
-    bio: "", title: "", location: "Philippines", experienceLevel: "Intermediate", availability: "Flexible"
+    bio: "", title: "", location: "Philippines", experienceLevel: "Beginner", availability: "Flexible"
   });
 
   const [userSettings, setUserSettings] = useState<UserSettings>({
@@ -99,6 +100,7 @@ export function useSkillSwap() {
 
   const syncLocalUsersToMatches = (currentEmail: string) => {
     const phoneBook = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
+    const customReviews = JSON.parse(localStorage.getItem("skillswap_global_reviews") || "{}");
     const localGeneratedMatches: Match[] = [];
     
     let idCounter = 1000; 
@@ -107,10 +109,14 @@ export function useSkillSwap() {
       if (email === currentEmail) continue; 
       
       const u = phoneBook[email];
-      
-      // DYNAMIC ONLINE STATUS LOGIC:
-      // User is ONLY online if they are logged in AND haven't hidden their status in settings.
       const isVisibleOnline = u.isCurrentlyLoggedIn !== false && u.settings?.showOnlineStatus !== false;
+      
+      let derivedCategory = "Development"; 
+      if (u.skills && u.skills.length > 0) {
+        const firstSkill = u.skills[0];
+        const matchedCat = categories.find(c => c.skills.includes(firstSkill));
+        if (matchedCat) derivedCategory = matchedCat.title;
+      }
       
       localGeneratedMatches.push({
         id: idCounter++,
@@ -121,14 +127,33 @@ export function useSkillSwap() {
         reviewCount: 0,
         reviews: [],
         avatar: u.name ? u.name.substring(0, 2).toUpperCase() : "U",
-        status: isVisibleOnline ? 'Online' : 'Offline', // <-- DYNAMIC STATUS
-        category: "Community", 
+        status: isVisibleOnline ? 'Online' : 'Offline', 
+        category: derivedCategory, 
         title: u.profile?.title || "New Member",
-        availability: u.profile?.availability || "Flexible"
+        availability: u.profile?.availability || "Flexible",
+        location: u.profile?.location || "Earth", 
+        experienceLevel: u.profile?.experienceLevel || "Beginner",
+        bio: u.profile?.bio || ""
       });
     }
 
-    setAllMatches([...matches, ...localGeneratedMatches]);
+    let combined = [...matches, ...localGeneratedMatches];
+
+    combined = combined.map(m => {
+      if (customReviews[m.id]) {
+        const revs = customReviews[m.id];
+        const avg = revs.length > 0 ? revs.reduce((sum: number, r: Review) => sum + r.rating, 0) / revs.length : 5.0;
+        return {
+          ...m,
+          reviews: revs,
+          reviewCount: revs.length,
+          rating: Number(avg.toFixed(1))
+        };
+      }
+      return m;
+    });
+
+    setAllMatches(combined);
   };
 
   const saveToPhoneBook = (updates: any) => {
@@ -196,10 +221,14 @@ export function useSkillSwap() {
       localStorage.setItem("skillswap_logged_in", "true");
       localStorage.setItem("skillswap_active_email", emailFromForm);
 
-      // Explicitly mark user as logged in inside the mock database
       if (!isLoginView) {
         setUserName(nameFromForm || "User");
-        saveToPhoneBook({ email: emailFromForm, name: nameFromForm || "User", isCurrentlyLoggedIn: true });
+        saveToPhoneBook({ 
+            email: emailFromForm, 
+            name: nameFromForm || "User", 
+            isCurrentlyLoggedIn: true,
+            profile: { bio: "", title: "Student", location: "Philippines", experienceLevel: "Beginner", availability: "Flexible" }
+        });
       } else {
         loadUserData(emailFromForm);
         const pb = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
@@ -210,15 +239,12 @@ export function useSkillSwap() {
       }
       
       syncLocalUsersToMatches(emailFromForm);
-      
       setIsLoggedIn(true); setIsSubmitting(false); triggerToast("Welcome to SkillSwap!");
     }, 800);
   };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    
-    // Explicitly mark user as OFFLINE in the mock database upon logout
     const activeEmail = localStorage.getItem("skillswap_active_email");
     if (activeEmail) {
       const phoneBook = JSON.parse(localStorage.getItem("skillswap_users_list") || "{}");
@@ -231,27 +257,10 @@ export function useSkillSwap() {
     setTimeout(() => {
       localStorage.removeItem("skillswap_logged_in"); 
       localStorage.removeItem("skillswap_active_email");
-      
-      setUserName("User"); 
-      setMySkills([]); 
-      setMyNeeds([]); 
-      setChatHistory({}); 
-      setActiveChatIDs([]); 
-      setBlockedUsers([]);
-      
-      setSearchQuery("");
-      setActiveCategoryFilter("All");
-      setSortBy("Recommended");
-      setOnlineOnly(false);
-      
-      setShowChat(false);
-      setActiveChatPartner(null);
-      setOnboardingCategory(null);
-      
-      setIsLoggedIn(false); 
-      setActiveTab("hub"); 
-      setIsLoggingOut(false); 
-      triggerToast("Logged out.");
+      setUserName("User"); setMySkills([]); setMyNeeds([]); setChatHistory({}); setActiveChatIDs([]); setBlockedUsers([]);
+      setSearchQuery(""); setActiveCategoryFilter("All"); setSortBy("Recommended"); setOnlineOnly(false);
+      setShowChat(false); setActiveChatPartner(null); setOnboardingCategory(null);
+      setIsLoggedIn(false); setActiveTab("hub"); setIsLoggingOut(false); triggerToast("Logged out.");
     }, 600);
   };
 
@@ -260,13 +269,37 @@ export function useSkillSwap() {
     setActiveTab("chat"); setShowChat(true); 
   };
 
+  // FEATURE: Mark as Read perfectly integrated here!
   const openSpecificChat = (partner: Match) => {
     setActiveChatPartner(partner); setShowChat(true); setActiveTab("chat");
+    
+    let newList = [...activeChatIDs];
     if (!activeChatIDs.includes(partner.id)) {
-      const newList = [...activeChatIDs, partner.id];
-      setActiveChatIDs(newList); saveToPhoneBook({ chatList: newList });
+      newList.push(partner.id);
+      setActiveChatIDs(newList); 
     }
-    setMessages(chatHistory[partner.id] || []);
+    
+    const history = chatHistory[partner.id] || [];
+    let updated = false;
+    
+    // Scan messages, if they are from 'them' and not read, mark them read.
+    const readHistory = history.map(msg => {
+      if (msg.sender === 'them' && !msg.isRead) {
+        updated = true;
+        return { ...msg, isRead: true };
+      }
+      return msg;
+    });
+
+    if (updated) {
+      const newHistoryObj = { ...chatHistory, [partner.id]: readHistory };
+      setChatHistory(newHistoryObj);
+      setMessages(readHistory);
+      saveToPhoneBook({ chatHistory: newHistoryObj, chatList: newList });
+    } else {
+      setMessages(history);
+      saveToPhoneBook({ chatList: newList });
+    }
   };
 
   const saveMessages = (newMsgs: Message[]) => {
@@ -280,14 +313,15 @@ export function useSkillSwap() {
     if (e) e.preventDefault();
     if (!chatInput.trim() || !activeChatPartner) return;
     
-    const myNewMsg: Message = { id: Date.now(), sender: 'me', text: chatInput, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    const myNewMsg: Message = { id: Date.now(), sender: 'me', text: chatInput, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true };
     const updatedList = [...messages, myNewMsg];
     saveMessages(updatedList); setChatInput(""); 
     
     await apiStubs.sendMessageToSocket(activeChatPartner.id, chatInput);
     setIsPartnerTyping(true);
     setTimeout(() => {
-      const partnerReply: Message = { id: Date.now() + 1, sender: 'them', text: `That sounds like a plan!`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+      // Mock partner reply. By default it is false (unread), so it triggers notifications.
+      const partnerReply: Message = { id: Date.now() + 1, sender: 'them', text: `That sounds like a plan!`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: false };
       saveMessages([...updatedList, partnerReply]); setIsPartnerTyping(false);
     }, 2000);
   };
@@ -296,16 +330,10 @@ export function useSkillSwap() {
     const activeEmail = localStorage.getItem("skillswap_active_email");
     const savedLogin = localStorage.getItem("skillswap_logged_in");
     
-    if (activeEmail) { 
-      setUserEmail(activeEmail); 
-      loadUserData(activeEmail); 
-      syncLocalUsersToMatches(activeEmail); 
-    } else {
-      syncLocalUsersToMatches(""); 
-    }
+    if (activeEmail) { setUserEmail(activeEmail); loadUserData(activeEmail); syncLocalUsersToMatches(activeEmail); } 
+    else { syncLocalUsersToMatches(""); }
 
     if (savedLogin === "true") setIsLoggedIn(true);
-    
     const handleScroll = () => setShowScroll(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     const timer = setTimeout(() => setLoading(false), 1200);
@@ -324,6 +352,7 @@ export function useSkillSwap() {
   };
 
   const addSkill = (skill: string) => {
+    if (mySkills.length >= 5) { triggerToast("You can only add up to 5 teachable skills."); return; }
     if (mySkills.some(s => s.toLowerCase() === skill.toLowerCase())) { triggerToast(`${skill} is already added!`); return; }
     const updated = [...mySkills, skill];
     setMySkills(updated); setIsVerified(updated.length >= 3); saveToPhoneBook({ skills: updated }); triggerToast(`Added ${skill}!`);
@@ -335,6 +364,7 @@ export function useSkillSwap() {
   };
 
   const addNeed = (skill: string) => {
+    if (myNeeds.length >= 5) { triggerToast("You can only add up to 5 desired skills."); return; }
     if (myNeeds.some(s => s.toLowerCase() === skill.toLowerCase())) { triggerToast(`${skill} is already in your wishlist!`); return; }
     const updated = [...myNeeds, skill];
     setMyNeeds(updated); saveToPhoneBook({ needs: updated }); triggerToast(`Added ${skill} to wishlist!`);
@@ -354,26 +384,45 @@ export function useSkillSwap() {
     
     let scoredResults = allMatches
       .filter(m => !blockedUsers.includes(m.id))
-      .filter(m => m.rating >= 4.0) 
       .map(person => {
         let score = 0;
-        
         const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));
         const theyCanTeachMe = activeNeeds.some(n => person.teaching.toLowerCase().includes(n.toLowerCase()));
         const isMutualMatch = iCanTeachThem && theyCanTeachMe;
 
-        if (iCanTeachThem) score += 50;
-        if (theyCanTeachMe) score += 50;
+        let isCircularMatch = false;
+        if (!isMutualMatch && (iCanTeachThem || theyCanTeachMe)) {
+          isCircularMatch = allMatches.some(userC => {
+            if (userC.id === person.id || blockedUsers.includes(userC.id)) return false;
+            const personCanTeachC = userC.needs.toLowerCase().includes(person.teaching.toLowerCase());
+            const cCanTeachMe = activeNeeds.some(n => userC.teaching.toLowerCase().includes(n.toLowerCase()));
+            if (iCanTeachThem && personCanTeachC && cCanTeachMe) return true;
+            const iCanTeachC = mySkills.some(s => userC.needs.toLowerCase().includes(s.toLowerCase()));
+            const cCanTeachPerson = person.needs.toLowerCase().includes(userC.teaching.toLowerCase());
+            if (theyCanTeachMe && cCanTeachPerson && iCanTeachC) return true;
+            return false;
+          });
+        }
+
+        if (isMutualMatch) score += 100;
+        else if (isCircularMatch) score += 75; 
+        else {
+          if (iCanTeachThem) score += 50;
+          if (theyCanTeachMe) score += 50;
+        }
+
         if (person.category === onboardingCategory?.name) score += 20;
         if (person.status === 'Online') score += 10;
         score += (person.rating * 2);
         
-        return { ...person, matchScore: score, isMutualMatch };
+        return { ...person, matchScore: score, isMutualMatch, isCircularMatch };
       });
 
-    if (searchQuery.trim() !== "") {
-      const query = searchQuery.toLowerCase();
-      scoredResults = scoredResults.filter(m => m.name.toLowerCase().includes(query) || m.teaching.toLowerCase().includes(query) || m.category.toLowerCase().includes(query));
+    if (searchQuery.trim() === "") {
+        scoredResults = scoredResults.filter(m => m.rating >= 4.0);
+    } else {
+        const query = searchQuery.toLowerCase();
+        scoredResults = scoredResults.filter(m => m.name.toLowerCase().includes(query) || m.teaching.toLowerCase().includes(query) || m.category.toLowerCase().includes(query));
     }
     
     scoredResults = scoredResults.filter(m => {
@@ -386,6 +435,8 @@ export function useSkillSwap() {
       scoredResults.sort((a, b) => {
         if (a.isMutualMatch && !b.isMutualMatch) return -1;
         if (!a.isMutualMatch && b.isMutualMatch) return 1;
+        if (a.isCircularMatch && !b.isCircularMatch) return -1;
+        if (!a.isCircularMatch && b.isCircularMatch) return 1;
         return (b.matchScore || 0) - (a.matchScore || 0);
       });
     }
@@ -397,7 +448,7 @@ export function useSkillSwap() {
 
   const state: SkillSwapState = { 
     loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, 
-    addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, isPartnerTyping, 
+    addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, 
     filteredMatches, activeChatUsers, blockedUsers, allMatches, year: 2026, toast, isVerified, activeChatIDs, userProfile, userSettings 
   };
 
@@ -423,15 +474,37 @@ export function useSkillSwap() {
       triggerToast("User reported and blocked successfully."); 
     },
     submitReview: (partnerId: number, rating: number, comment: string) => {
+      const allCustomReviews = JSON.parse(localStorage.getItem('skillswap_global_reviews') || '{}');
+      let currentReviews = allCustomReviews[partnerId];
+      if (!currentReviews) {
+         const existingUser = allMatches.find(m => m.id === partnerId);
+         currentReviews = existingUser ? existingUser.reviews : [];
+      }
+
+      const newReview: Review = { id: Date.now().toString(), reviewer: userName, rating, comment };
+      const updatedReviews = [newReview, ...currentReviews];
+      
+      allCustomReviews[partnerId] = updatedReviews;
+      localStorage.setItem('skillswap_global_reviews', JSON.stringify(allCustomReviews));
+
+      const newAvg = updatedReviews.reduce((sum: number, r: Review) => sum + r.rating, 0) / updatedReviews.length;
+      const finalRating = Number(newAvg.toFixed(1));
+
+      let newlyUpdatedPartner: Match | null = null;
+      
       setAllMatches(prev => prev.map(m => {
         if (m.id === partnerId) {
-          const newReview: Review = { id: Date.now().toString(), reviewer: userName, rating, comment };
-          const updatedReviews = [newReview, ...(m.reviews || [])];
-          const newAvg = updatedReviews.reduce((sum, r) => sum + r.rating, 0) / updatedReviews.length;
-          return { ...m, reviews: updatedReviews, reviewCount: updatedReviews.length, rating: Number(newAvg.toFixed(1)) };
+          const updatedMatch = { ...m, reviews: updatedReviews, reviewCount: updatedReviews.length, rating: finalRating };
+          newlyUpdatedPartner = updatedMatch;
+          return updatedMatch;
         }
         return m;
       }));
+
+      if (activeChatPartner && activeChatPartner.id === partnerId && newlyUpdatedPartner) {
+        setters.setActiveChatPartner(newlyUpdatedPartner);
+      }
+
       triggerToast("Feedback submitted successfully!");
     },
     saveProfile: async (newData: Partial<UserProfile>) => {

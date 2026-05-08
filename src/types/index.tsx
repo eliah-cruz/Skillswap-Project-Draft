@@ -3,6 +3,7 @@ export interface Message {
   sender: 'me' | 'them';
   text: string;
   timestamp: string;
+  isRead?: boolean; // NEW: Added to track read/unread status across refreshes
 }
 
 export interface Review {
@@ -26,8 +27,12 @@ export type Match = {
   title: string;
   image?: string;
   availability?: string;
+  location?: string;
+  experienceLevel?: string;
+  bio?: string;
   matchScore?: number;
   isMutualMatch?: boolean;
+  isCircularMatch?: boolean; 
 };
 
 export type Category = {

@@ -10,32 +10,32 @@ const teamMembers = [
   { 
     id: 1,
     name: "Qarlo Banguilan", 
-    role: "Lead Full Stack Dev", 
+    role: "Back-End", 
     bio: "Sleep Mode",
     avatar: "QB", 
     color: "bg-indigo-600",
     socials: { github: "#", linkedin: "#" },
-    tech: ["Next.js", "TypeScript", "Node.js"]
+    tech: ["Supabase (PostgreSQL)", "Google API" ,"Render (PaaS)" ,"Socket.io" , "Figma"]
   },
   { 
     id: 2,
     name: "Eliah Cruz", 
-    role: "UI/UX", 
-    bio: "100% UI and UX",
+    role: "Front-End", 
+    bio: "I LUV JASON TODD",
     avatar: "EC", 
     color: "bg-purple-600",
     socials: { github: "https://github.com/eliah-cruz", linkedin: "https://www.linkedin.com/in/eliah-d-cruz-520970297/" },
-    tech: ["Next.js", "Tailwind", "Node.js", "TypeScript"]
+    tech: ["Vercel", "Next.js", "Tailwind", "Node.js", "Luicide React", "Figma"]
   },
   { 
     id: 3,
     name: "Rafael Torres", 
-    role: "DevOps & Backend", 
+    role: "Back-End", 
     bio: "Grammarly",
     avatar: "RT", 
     color: "bg-emerald-500",
     socials: { github: "#", linkedin: "#" },
-    tech: ["Docker", "PostgreSQL", "AWS"]
+    tech: ["Supabase (PostgreSQL)"]
   },
 ];
 

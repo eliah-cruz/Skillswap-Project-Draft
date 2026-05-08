@@ -12,22 +12,23 @@ export default function SkillDirectory({ state, setters, actions }: any) {
   const activeList = isLearning ? state.myNeeds : state.mySkills;
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+    // UI FIX: Changed to z-[500] and backdrop-blur-md
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white rounded-[4rem] w-full max-w-2xl overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] border-4 border-white flex flex-col max-h-[85vh] relative">
         
-        {/* --- HEADER --- */}
         <div className="p-10 border-b-2 border-slate-50 flex justify-between items-center bg-white shrink-0 relative z-10">
           <div className="flex items-center gap-5">
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl ${isLearning ? 'bg-emerald-500 shadow-emerald-200' : 'bg-indigo-600 shadow-indigo-200'}`}>
               <LayoutGrid size={28} strokeWidth={2.5} />
             </div>
             <div className="text-left">
+              {/* UI FIX: Added (Max 5) to the header */}
               <h3 className="font-black text-slate-900 uppercase tracking-[0.2em] text-sm">
-                {isLearning ? "What do you want to learn?" : "What can you teach?"}
+                {isLearning ? "What do you want to learn?" : "What can you teach?"} <span className="text-slate-400 text-xs">(Max 5)</span>
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <Sparkles size={14} className="text-amber-500 fill-amber-500" />
-                <p className="text-[11px] text-slate-500 font-black uppercase tracking-tight">{activeList?.length || 0} Skills Collected</p>
+                <p className="text-[11px] text-slate-500 font-black uppercase tracking-tight">{activeList?.length || 0}/5 Skills Collected</p>
               </div>
             </div>
           </div>
@@ -37,7 +38,6 @@ export default function SkillDirectory({ state, setters, actions }: any) {
           </button>
         </div>
 
-        {/* --- CONTENT AREA --- */}
         <div className="overflow-y-auto pb-12 bg-white">
           <div className="px-10 pt-10">
             {!state.onboardingCategory ? (
@@ -70,7 +70,6 @@ export default function SkillDirectory({ state, setters, actions }: any) {
                     Categories
                   </button>
                   
-                  {/* Skill Search Bar */}
                   <div className="relative w-64">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input 

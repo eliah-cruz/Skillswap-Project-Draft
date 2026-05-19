@@ -70,109 +70,79 @@ src/
 │   └── useSkillSwap.ts        # HUGE: Core state manager & mock backend logic
 └── types/
     └── index.tsx              # Global TypeScript interfaces
+```
 
-🚀 How to Run Locally (Frontend)
+---
 
-Currently, the frontend runs completely in the browser using localStorage to
-simulate backend persistence via the useSkillSwap hook.
+## 🚀 How to Run Locally (Frontend)
 
-1.  Clone the repository:
+Currently, the frontend runs completely in the browser using `localStorage` to simulate backend persistence via the `useSkillSwap` hook.
 
-    git clone https://github.com/eliah-cruz/Skillswap-Project-Draft
-    cd skillswap
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/eliah-cruz/Skillswap-Project-Draft
+   cd skillswap
+   ```
 
-2.  Install dependencies:
+2. **Install dependencies:**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-    npm install
-    # or
-    yarn install
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
-3.  Run the development server:
+4. **Open the app:**
+   Visit [http://localhost:3000](http://localhost:3000) in your browser. 
+   *(Note: You can use any dummy email to bypass the login screen since it currently uses a mock local-storage auth flow).*
 
-    npm run dev
-    # or
-    yarn dev
+---
 
-4.  Open the app: Visit http://localhost:3000 in your browser. (Note: You can
-    use any dummy email to bypass the login screen since it currently uses a
-    mock local-storage auth flow).
+## 🛠️ Backend Team Architecture & Roadmap
+**ATTENTION BACKEND TEAM:** The frontend is currently mocked using `localStorage` inside `src/hooks/useSkillSwap.ts`. Your goal is to replace `apiStubs` and local storage logic with our actual stack: **Supabase (PostgreSQL), Node.js, Socket.io, Gmail SMTP, and Render.**
 
-🛠️ Backend Team Architecture & Roadmap
+### 1. Database Setup & RLS (Supabase / PostgreSQL)
+We need to transition from the mock `data.ts` to a relational database. 
+* **Users Table:** `id`, `email`, `name`, `title`, `bio`, `location`, `rating`, `status (online/offline)`.
+* **Skills Table:** Standardized list of skills (e.g., Python, Figma).
+* **User_Skills (Bridge Table):** Maps `user_id` to `skill_id` with a type indicator (`type: 'teaching' | 'learning'`).
+* **Settings/Privacy:** Tables/columns to handle the `showOnlineStatus` and `emailNotifications` states.
+* **Security:** Implement **Row Level Security (RLS)** in Supabase to ensure users can only edit their own profiles and read chats they are a part of.
 
-ATTENTION BACKEND TEAM: The frontend is currently mocked using localStorage
-inside src/hooks/useSkillSwap.ts. Your goal is to replace apiStubs and local
-storage logic with our actual stack: Supabase (PostgreSQL), Node.js, Socket.io,
-Gmail SMTP, and Render.
+### 2. Authentication & Email Delivery (Gmail SMTP Setup)
+As outlined in the system architecture, we are using a **Passwordless Identity Verification (Magic Link)** flow. The frontend has the "Get Magic Link" button ready in `landinghero.tsx` and an "Email Notifications" toggle in `usersettings.tsx`. 
 
-1. Database Setup & RLS (Supabase / PostgreSQL)
+**Backend Tasks for SMTP:**
+1. **Configure Supabase Auth:** By default, Supabase email rate limits are low. You must configure Supabase to use a custom SMTP server (Gmail).
+   * Create a dedicated Gmail account for the project (e.g., `skillswap.noreply@gmail.com`).
+   * Generate an **App Password** in Google Account Security settings.
+   * Go to Supabase Dashboard -> Authentication -> Providers -> Email -> Enable Custom SMTP and input the Gmail credentials.
+2. **Setup Nodemailer (Node.js/Render):** Aside from auth, users can opt-in to receive emails when they get a new match or message. Set up Nodemailer on the Render backend using the same Gmail SMTP credentials to fire off system emails based on socket events.
 
-We need to transition from the mock data.ts to a relational database.
+### 3. The Matchmaking Algorithm (Node.js API)
+Currently, `useSkillSwap.ts` uses a basic 2-way heuristic scoring system in the frontend. This needs to be moved to the backend.
+* **Direct Matching (2-way):** Query the database to find User A (wants Python, teaches Figma) and User B (wants Figma, teaches Python).
+* **Graph Theory / Circular Match (3-way):** Implement the logic mentioned in the PDF. Create a Directed Graph algorithm in Node.js to find loops: *User A teaches User B -> User B teaches User C -> User C teaches User A.*
+* **Endpoint:** `GET /api/matches?userId=123&category=Design&onlineOnly=true`
 
-  - Users Table: id, email, name, title, bio, location, rating, status
-    (online/offline).
-  - Skills Table: Standardized list of skills (e.g., Python, Figma).
-  - User_Skills (Bridge Table): Maps user_id to skill_id with a type indicator
-    (type: 'teaching' | 'learning').
-  - Settings/Privacy: Tables/columns to handle the showOnlineStatus and
-    emailNotifications states.
-  - Security: Implement Row Level Security (RLS) in Supabase to ensure users can
-    only edit their own profiles and read chats they are a part of.
+### 4. Real-Time Chat & File Transfers (Socket.io hosted on Render)
+The `messenger.tsx` component is ready to be hooked up to a real WebSocket server.
+* **Setup:** Deploy a Node.js/Express server with Socket.io on **Render (PaaS)**.
+* **Presence Data:** When a user connects to the socket, update their Supabase status to `Online`. Disconnect = `Offline` or `Away`. (Respecting their privacy toggle in `usersettings.tsx`).
+* **Chat Rooms:** When two users match and chat, generate a unique `room_id`. 
+* **Message & File Persistence:** When `sendMessageToSocket` is fired, the Node.js server must broadcast the text or Base64 file string via Socket.io AND save it to a Supabase `Messages` table simultaneously.
+* **Safety Features:** Implement endpoints for the "Block User", "Report User", and "Delete Conversation" features found in the messenger dropdown.
 
-2. Authentication & Email Delivery (Gmail SMTP Setup)
-
-As outlined in the system architecture, we are using a Passwordless Identity
-Verification (Magic Link) flow. The frontend has the "Get Magic Link" button
-ready in landinghero.tsx and an "Email Notifications" toggle in
-usersettings.tsx.
-
-Backend Tasks for SMTP:
-
-1.  Configure Supabase Auth: By default, Supabase email rate limits are low. You
-    must configure Supabase to use a custom SMTP server (Gmail).
-      - Create a dedicated Gmail account for the project (e.g.,
-        skillswap.noreply@gmail.com).
-      - Generate an App Password in Google Account Security settings.
-      - Go to Supabase Dashboard -> Authentication -> Providers -> Email ->
-        Enable Custom SMTP and input the Gmail credentials.
-2.  Setup Nodemailer (Node.js/Render): Aside from auth, users can opt-in to
-    receive emails when they get a new match or message. Set up Nodemailer on
-    the Render backend using the same Gmail SMTP credentials to fire off system
-    emails based on socket events.
-
-3. The Matchmaking Algorithm (Node.js API)
-
-Currently, useSkillSwap.ts uses a basic 2-way heuristic scoring system in the
-frontend. This needs to be moved to the backend.
-
-  - Direct Matching (2-way): Query the database to find User A (wants Python,
-    teaches Figma) and User B (wants Figma, teaches Python).
-  - Graph Theory / Circular Match (3-way): Implement the logic mentioned in the
-    PDF. Create a Directed Graph algorithm in Node.js to find loops: User A
-    teaches User B -> User B teaches User C -> User C teaches User A.
-  - Endpoint: GET /api/matches?userId=123&category=Design&onlineOnly=true
-
-4. Real-Time Chat & File Transfers (Socket.io hosted on Render)
-
-The messenger.tsx component is ready to be hooked up to a real WebSocket server.
-
-  - Setup: Deploy a Node.js/Express server with Socket.io on Render (PaaS).
-  - Presence Data: When a user connects to the socket, update their Supabase
-    status to Online. Disconnect = Offline or Away. (Respecting their privacy
-    toggle in usersettings.tsx).
-  - Chat Rooms: When two users match and chat, generate a unique room_id.
-  - Message & File Persistence: When sendMessageToSocket is fired, the Node.js
-    server must broadcast the text or Base64 file string via Socket.io AND save
-    it to a Supabase Messages table simultaneously.
-  - Safety Features: Implement endpoints for the "Block User", "Report User",
-    and "Delete Conversation" features found in the messenger dropdown.
-
-5. Integration Steps for Frontend <-> Backend
-
+### 5. Integration Steps for Frontend <-> Backend
 Once the backend is live:
-
-1.  Strip out all localStorage logic inside useSkillSwap.ts.
-2.  Replace local state initialization with useEffect fetch calls to your
-    Supabase/Node.js endpoints.
-3.  Hook up the auth flow to Supabase's supabase.auth.signInWithOtp({ email }).
-4.  Replace the apiStubs.sendMessageToSocket with actual
-    socket.emit('send_message', data).
+1. Strip out all `localStorage` logic inside `useSkillSwap.ts`.
+2. Replace local state initialization with `useEffect` fetch calls to your Supabase/Node.js endpoints.
+3. Hook up the auth flow to Supabase's `supabase.auth.signInWithOtp({ email })`.
+4. Replace the `apiStubs.sendMessageToSocket` with actual `socket.emit('send_message', data)`.
+```

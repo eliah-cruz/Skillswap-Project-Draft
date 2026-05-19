@@ -145,4 +145,3 @@ Once the backend is live:
 2. Replace local state initialization with `useEffect` fetch calls to your Supabase/Node.js endpoints.
 3. Hook up the auth flow to Supabase's `supabase.auth.signInWithOtp({ email })`.
 4. Replace the `apiStubs.sendMessageToSocket` with actual `socket.emit('send_message', data)`.
-```

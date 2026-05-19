@@ -3,7 +3,10 @@ export interface Message {
   sender: 'me' | 'them';
   text: string;
   timestamp: string;
-  isRead?: boolean; // NEW: Added to track read/unread status across refreshes
+  isRead: boolean;
+  type?: 'text' | 'file'; // Added for file sharing
+  fileName?: string;      // Added for file sharing
+  fileUrl?: string;       // Added for file sharing
 }
 
 export interface Review {

@@ -269,7 +269,6 @@ export function useSkillSwap() {
     setActiveTab("chat"); setShowChat(true); 
   };
 
-  // FEATURE: Mark as Read perfectly integrated here!
   const openSpecificChat = (partner: Match) => {
     setActiveChatPartner(partner); setShowChat(true); setActiveTab("chat");
     
@@ -282,7 +281,6 @@ export function useSkillSwap() {
     const history = chatHistory[partner.id] || [];
     let updated = false;
     
-    // Scan messages, if they are from 'them' and not read, mark them read.
     const readHistory = history.map(msg => {
       if (msg.sender === 'them' && !msg.isRead) {
         updated = true;
@@ -320,10 +318,45 @@ export function useSkillSwap() {
     await apiStubs.sendMessageToSocket(activeChatPartner.id, chatInput);
     setIsPartnerTyping(true);
     setTimeout(() => {
-      // Mock partner reply. By default it is false (unread), so it triggers notifications.
       const partnerReply: Message = { id: Date.now() + 1, sender: 'them', text: `That sounds like a plan!`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: false };
       saveMessages([...updatedList, partnerReply]); setIsPartnerTyping(false);
     }, 2000);
+  };
+
+  // FEATURE: Handle sending Base64 files!
+  const handleSendFile = async (fileData: { type: 'file', fileName: string, fileUrl: string }) => {
+    if (!activeChatPartner) return;
+
+    // Construct the file message
+    const myNewMsg: Message = { 
+      id: Date.now(), 
+      sender: 'me', 
+      text: '', // Empty text because it's a file
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+      isRead: true,
+      type: 'file',
+      fileName: fileData.fileName,
+      fileUrl: fileData.fileUrl
+    };
+
+    const updatedList = [...messages, myNewMsg];
+    saveMessages(updatedList);
+    
+    // Simulate socket file transfer
+    await apiStubs.sendMessageToSocket(activeChatPartner.id, `[File Transferred: ${fileData.fileName}]`);
+    
+    setIsPartnerTyping(true);
+    setTimeout(() => {
+      const partnerReply: Message = { 
+        id: Date.now() + 1, 
+        sender: 'them', 
+        text: `Thanks for sending the file over! I'll take a look.`, 
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 
+        isRead: false 
+      };
+      saveMessages([...updatedList, partnerReply]); 
+      setIsPartnerTyping(false);
+    }, 2500);
   };
 
   useEffect(() => {
@@ -459,7 +492,7 @@ export function useSkillSwap() {
   };
 
   const actions = { 
-    handleAuth, handleLogout, triggerToast, addSkill, removeSkill, addNeed, removeNeed, saveToPhoneBook, blockUser, unblockUser, openRecentChats, openSpecificChat, handleSendMessage,
+    handleAuth, handleLogout, triggerToast, addSkill, removeSkill, addNeed, removeNeed, saveToPhoneBook, blockUser, unblockUser, openRecentChats, openSpecificChat, handleSendMessage, handleSendFile,
     
     deleteConversation: (partnerId: number) => {
         const updatedHistory = { ...chatHistory };

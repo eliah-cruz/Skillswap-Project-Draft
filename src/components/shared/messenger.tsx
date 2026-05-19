@@ -1,25 +1,28 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-// FEATURE: Imported Maximize2 and Minimize2 icons
-import { Send, X, MoreVertical, Flag, MessageSquare, ShieldAlert, UserX, Star, Trash2, AlertTriangle, Maximize2, Minimize2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Send, X, MoreVertical, Flag, MessageSquare, ShieldAlert, 
+  UserX, Star, Trash2, AlertTriangle, Maximize2, Minimize2, 
+  Paperclip 
+} from 'lucide-react';
 
 export default function Messenger({ state, setters, chatEndRef, actions }: any) {
   const [showSafetyMenu, setShowSafetyMenu] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false); 
-  const [reportReason, setReportReason] = useState("spam");
   
+  const [reportReason, setReportReason] = useState("spam");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
 
-  // FEATURE: State to track if chat is maximized to center
   const [isMaximized, setIsMaximized] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const partner = state.activeChatPartner;
   const hasChats = state.activeChatUsers && state.activeChatUsers.length > 0;
 
-  // Reset maximized state if they close the chat entirely
   useEffect(() => {
     if (!state.showChat) setIsMaximized(false);
   }, [state.showChat]);
@@ -42,7 +45,25 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
     }
   };
 
-  // FEATURE: Smooth transition classes for Sidebar vs Maximized
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64File = reader.result;
+      
+      if (actions.handleSendFile) {
+        actions.handleSendFile({
+          type: 'file',
+          fileName: file.name,
+          fileUrl: base64File
+        });
+      }
+    };
+    reader.readAsDataURL(file); 
+  };
+
   const containerClasses = isMaximized
     ? "inset-4 md:inset-10 z-[200] max-w-5xl mx-auto rounded-[3rem] border-2 border-slate-100"
     : "inset-y-0 right-0 z-[200] w-full max-w-lg border-l border-slate-100";
@@ -92,7 +113,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
             )}
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             {partner && (
               <>
                 <div className="relative">
@@ -115,7 +136,6 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
                   )}
                 </div>
 
-                {/* FEATURE: Expand/Minimize Button */}
                 <button 
                   onClick={() => setIsMaximized(!isMaximized)} 
                   className="hidden md:flex cursor-pointer w-12 h-12 rounded-2xl bg-slate-50 items-center justify-center text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
@@ -164,8 +184,19 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
                 ) : (
                   state.messages.map((m: any, i: number) => (
                       <div key={i} className={`flex flex-col ${m.sender === 'me' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                          <div className={`p-5 rounded-[2rem] max-w-[90%] text-md font-bold leading-relaxed ${m.sender === 'me' ? 'bg-indigo-600 text-white rounded-br-none shadow-xl' : 'bg-slate-100 text-slate-900 rounded-bl-none border border-slate-200/50'}`}>
-                            {m.text}
+                          <div className={`p-5 rounded-[2rem] max-w-[90%] md:max-w-[80%] text-md font-bold leading-relaxed overflow-x-auto ${m.sender === 'me' ? 'bg-indigo-600 text-white rounded-br-none shadow-xl' : 'bg-slate-100 text-slate-900 rounded-bl-none border border-slate-200/50'}`}>
+                            
+                            {m.type === 'file' ? (
+                              <div className="flex flex-col gap-2">
+                                <span className="text-xs opacity-70 border-b border-white/20 pb-1">Attachment</span>
+                                <a href={m.fileUrl} download={m.fileName} className="flex items-center gap-2 hover:opacity-70 transition underline">
+                                  <Paperclip size={18} /> {m.fileName}
+                                </a>
+                              </div>
+                            ) : (
+                              <span className="whitespace-pre-wrap">{m.text}</span>
+                            )}
+
                           </div>
                           <span className="text-[10px] font-black text-slate-400 mt-2 uppercase px-2">{m.timestamp}</span>
                       </div>
@@ -178,10 +209,27 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
         {/* Input Form */}
         {partner && (
-          <div className={`p-8 bg-white border-t-2 border-slate-50 ${isMaximized ? 'rounded-b-[3rem]' : ''}`}>
-              <form onSubmit={actions.handleSendMessage} className="relative flex items-center gap-4 bg-slate-100 p-2 rounded-[2.5rem] focus-within:bg-white border-2 border-transparent focus-within:border-indigo-500 transition-all shadow-inner">
-                  <input autoFocus value={state.chatInput} onChange={e => setters.setChatInput(e.target.value)} className="flex-1 bg-transparent py-4 px-6 outline-none text-md font-bold text-slate-900" placeholder={`Write to ${partner.name}...`} />
-                  <button type="submit" disabled={!state.chatInput.trim()} className="cursor-pointer w-14 h-14 bg-indigo-600 text-white rounded-[1.8rem] flex items-center justify-center shadow-xl hover:bg-slate-900 transition-all disabled:opacity-30">
+          <div className={`p-6 bg-white border-t-2 border-slate-50 ${isMaximized ? 'rounded-b-[3rem]' : ''}`}>
+              <form onSubmit={actions.handleSendMessage} className="relative flex items-center gap-3 bg-slate-100 p-2 rounded-[2.5rem] focus-within:bg-white border-2 border-transparent focus-within:border-indigo-500 transition-all shadow-inner">
+                  
+                  <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="cursor-pointer w-12 h-12 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+                    title="Attach File"
+                  >
+                    <Paperclip size={22} />
+                  </button>
+
+                  <input 
+                    autoFocus 
+                    value={state.chatInput} 
+                    onChange={e => setters.setChatInput(e.target.value)} 
+                    className="flex-1 bg-transparent py-4 px-2 outline-none text-md font-bold text-slate-900" 
+                    placeholder="Type your message..." 
+                  />
+                  <button type="submit" disabled={!state.chatInput.trim()} className="cursor-pointer w-14 h-14 bg-indigo-600 text-white rounded-[1.8rem] flex items-center justify-center shadow-xl hover:bg-slate-900 transition-all disabled:opacity-30 shrink-0">
                     <Send size={24} strokeWidth={2.5} />
                   </button>
               </form>

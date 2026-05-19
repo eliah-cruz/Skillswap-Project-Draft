@@ -8,16 +8,17 @@
 
 ## 🎥 Video Preview
 
-https://github.com/user-attachments/assets/519f2492-aae7-47cf-b912-d22fc894f111
+https://github.com/user-attachments/assets/cd6ce60d-fec7-4c65-ac15-95e092d231c2
 
 ---
 
 ## 📖 About the Project
 Traditional Online Learning Platforms (OLPs) suffer from up to a 90% attrition rate due to learner isolation and lack of accountability. SkillSwap transforms learning into a community-driven exchange. 
 
-Built upon **Social Exchange Theory** and resolving the economic barrier of the **Double Coincidence of Wants**, SkillSwap uses a heuristic proximity matching algorithm to connect users. You teach what you know, and in return, you learn what you need—no currency required.
+Built upon **Social Exchange Theory** and resolving the economic barrier of the **Double Coincidence of Wants**, SkillSwap uses a heuristic proximity matching algorithm to connect users. You teach what you know, and in return, you learn what you need, no currency required.
 
 ### ✨ Key Features
+<<<<<<< HEAD
 * **🔐 Passwordless Authentication:** Secure, frictionless login and account creation utilizing a "Magic Link" via Gmail SMTP—no passwords required.
 * **🔍 Dynamic Skill Search:** Real-time search bar that allows users to instantly filter the dashboard to find specific peers by typing their names or desired skills.
 * **🗂️ Category Filtering:** Dedicated tabs to filter the matchmaking dashboard by specific skill departments: All, Development, Design, Languages, and Marketing.
@@ -28,6 +29,15 @@ Built upon **Social Exchange Theory** and resolving the economic barrier of the 
 * **🛡️ User Moderation Tools:** Built-in safety menu within active chats allowing users to "Clear Chat History," "Delete Conversation," "Block User," or "Report & Block."
 * **📋 Skill Profile Builder:** An intuitive modal-based Skill Directory where users can easily browse categories and use checkboxes to add specific teachable and desired skills to their profile.
 * **👤 Profile Management:** A dedicated form where users can update their personal metadata, including Display Name, Professional Title, Experience Level, Country, and Bio.
+=======
+* **🔐 Passwordless Authentication:** Secure, frictionless login and account creation utilizing a "Magic Link" via Gmail API no passwords required.
+* **🔍 Dynamic Skill Search & Filtering:** Real-time search bar to find peers by name or specific skill, alongside department category filters (Development, Design, Languages, Marketing).
+* **🟢 Online Availability Toggle:** A dedicated switch to filter the matchmaking dashboard to only show peers who are currently online and ready to interact.
+* **🗂️ Match Sorting:** Organize peer recommendations dynamically by "Recommended" (algorithmic matching), "Top Rated," or "Newest."
+* **💬 Stateful Real-Time Messaging:** Built-in chat interface powered by Socket.io, featuring "Online" status, typing indicators, and a persistent safety banner-allowing users to coordinate sessions without leaving the app.
+* **🛡️ User Moderation & Safety Tools:** Built-in safety menu within active chats allowing users to "Clear Chat History," "Delete Conversation," "Block User," or "Report & Block."
+* **⚙️ Profile & Skill Builder:** An intuitive modal-based Skill Directory to easily check off "Teachable" and "Desired" skills, plus comprehensive profile management (Title, Experience Level, Country, Bio).
+>>>>>>> b866033e1e12ae2e0817f20154e5428036f2a1bc
 * **🔒 Privacy & Account Settings:** User-controlled settings featuring toggles for "Email Notifications" (for offline alerts) and "Show Online Status" to protect digital presence and privacy.
 
 ---
@@ -93,18 +103,35 @@ simulate backend persistence via the useSkillSwap hook.
     # or
     yarn dev
 
+<<<<<<< HEAD
 4.  Open the app: Visit http://localhost:3000 in your browser. (Note: You can
     use any dummy email to bypass the login screen since it currently uses a
     mock local-storage auth flow).
+=======
+## 🛠️ Backend Team Architecture & Roadmap
+**ATTENTION BACKEND TEAM:** The frontend is currently mocked using `localStorage` inside `src/hooks/useSkillSwap.ts`. Your goal is to replace `apiStubs` and local storage logic with our actual stack: **Supabase (PostgreSQL), Node.js, Socket.io, Gmail API, and Render.**
+>>>>>>> b866033e1e12ae2e0817f20154e5428036f2a1bc
 
 🛠️ Backend Team Architecture & Roadmap
 
+<<<<<<< HEAD
 ATTENTION BACKEND TEAM: The frontend is currently mocked using localStorage
 inside src/hooks/useSkillSwap.ts. Your goal is to replace apiStubs and local
 storage logic with our actual stack: Supabase (PostgreSQL), Node.js, Socket.io,
 Gmail SMTP, and Render.
 
 1. Database Setup & RLS (Supabase / PostgreSQL)
+=======
+### 2. Authentication & Email Delivery (Gmail API Setup)
+As outlined in the system architecture, we are using a **Passwordless Identity Verification (Magic Link)** flow. The frontend has the "Get Magic Link" button ready in `landinghero.tsx` and an "Email Notifications" toggle in `usersettings.tsx`. 
+
+**Backend Tasks for API:**
+1. **Configure Supabase Auth:** By default, Supabase email rate limits are low. You must configure Supabase to use a custom API server (Gmail).
+   * Create a dedicated Gmail account for the project (e.g., `skillswap.noreply@gmail.com`).
+   * Generate an **App Password** in Google Account Security settings.
+   * Go to Supabase Dashboard -> Authentication -> Providers -> Email -> Enable Custom API and input the Gmail credentials.
+2. **Setup Nodemailer (Node.js/Render):** Aside from auth, users can opt-in to receive emails when they get a new match or message. Set up Nodemailer on the Render backend using the same Gmail API credentials to fire off system emails based on socket events.
+>>>>>>> b866033e1e12ae2e0817f20154e5428036f2a1bc
 
 We need to transition from the mock data.ts to a relational database.
 
@@ -169,6 +196,7 @@ The messenger.tsx component is ready to be hooked up to a real WebSocket server.
 5. Integration Steps for Frontend <-> Backend
 
 Once the backend is live:
+<<<<<<< HEAD
 
 1.  Strip out all localStorage logic inside useSkillSwap.ts.
 2.  Replace local state initialization with useEffect fetch calls to your
@@ -176,3 +204,9 @@ Once the backend is live:
 3.  Hook up the auth flow to Supabase's supabase.auth.signInWithOtp({ email }).
 4.  Replace the apiStubs.sendMessageToSocket with actual
     socket.emit('send_message', data).
+=======
+1. Strip out all `localStorage` logic inside `useSkillSwap.ts`.
+2. Replace local state initialization with `useEffect` fetch calls to your Supabase/Node.js endpoints.
+3. Hook up the auth flow to Supabase's `supabase.auth.signInWithOtp({ email })`.
+4. Replace the `apiStubs.sendMessageToSocket` with actual `socket.emit('send_message', data)`.
+>>>>>>> b866033e1e12ae2e0817f20154e5428036f2a1bc

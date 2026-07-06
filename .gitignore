@@ -1,0 +1,17 @@
+# Ignore dependency directories
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Ignore local environment variables and credentials
+.env
+.env.local
+backend/.env
+frontend/.env.local
+
+# Ignore Next.js build outputs
+.next/
+frontend/.next/
+
+# Ignore local email log files
+backend/temp_emails.log

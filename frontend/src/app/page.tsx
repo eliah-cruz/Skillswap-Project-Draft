@@ -21,6 +21,13 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [isCallbackTab, setIsCallbackTab] = useState(false);
 
+  // Security Cleanup for Legacy Mock Storage Artifacts
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("skillswap_users_list");
+    }
+  }, []);
+
   // Auto-Tab Closing Check
   useEffect(() => {
     if (typeof window !== "undefined") {

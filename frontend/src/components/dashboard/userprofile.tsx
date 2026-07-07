@@ -1,7 +1,5 @@
-// components/dashboard/userprofile.tsx
-
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Briefcase, MapPin, Save, Award } from 'lucide-react';
 
 const COUNTRIES = [
@@ -14,7 +12,6 @@ const EXPERIENCE_LEVELS = [
 ];
 
 export default function UserProfile({ state, setters, actions }: any) {
-  // Use a pristine state initializer to completely prevent the form inputs from clearing out while typing
   const [formData, setFormData] = useState(() => ({
     name: state.userName || "",
     bio: state.userProfile?.bio || "",
@@ -23,8 +20,48 @@ export default function UserProfile({ state, setters, actions }: any) {
     experienceLevel: state.userProfile?.experienceLevel || EXPERIENCE_LEVELS[0]
   }));
 
+  // Track values in a mutable ref to ensure the unmount cleanup can auto-save cleanly
+  const latestForm = useRef(formData);
+  useEffect(() => {
+    latestForm.current = formData;
+  }, [formData]);
+
+  // Accidental Navigation Auto-Save Mechanism
+  useEffect(() => {
+    const initialForm = {
+      name: state.userName || "",
+      bio: state.userProfile?.bio || "",
+      title: state.userProfile?.title || "",
+      location: state.userProfile?.location || COUNTRIES[0],
+      experienceLevel: state.userProfile?.experienceLevel || EXPERIENCE_LEVELS[0]
+    };
+
+    return () => {
+      const current = latestForm.current;
+      const hasChanged = 
+        current.name !== initialForm.name ||
+        current.bio !== initialForm.bio ||
+        current.title !== initialForm.title ||
+        current.location !== initialForm.location ||
+        current.experienceLevel !== initialForm.experienceLevel;
+
+      if (hasChanged) {
+        // Silently saves details to Supabase when switching tabs away
+        actions.saveProfile({
+          name: current.name,
+          bio: current.bio,
+          title: current.title,
+          location: current.location,
+          experienceLevel: current.experienceLevel
+        }, true);
+      }
+    };
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    if (e.target.name === 'bio' && e.target.value.length > 150) return;
+    if (e.target.name === 'bio' && e.target.value.length > 100) return;
+    if (e.target.name === 'name' && e.target.value.length > 25) return;
+    if (e.target.name === 'title' && e.target.value.length > 40) return;
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -37,9 +74,7 @@ export default function UserProfile({ state, setters, actions }: any) {
       title: formData.title,
       location: formData.location,
       experienceLevel: formData.experienceLevel
-    });
-
-    setters.setActiveTab(state.isAdmin ? 'admin' : 'hub'); 
+    }, false); // Normal save triggers instant redirect to dashboard
   };
 
   return (
@@ -50,22 +85,41 @@ export default function UserProfile({ state, setters, actions }: any) {
           Edit Profile
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 text-left">
+          
+          {/* DISPLAY NAME */}
           <div className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-widest text-slate-500">Display Name</label>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-500">Display Name</label>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${formData.name.length >= 22 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`}>
+                {formData.name.length} / 25
+              </span>
+            </div>
             <input 
-              name="name" value={formData.name} onChange={handleChange}
+              name="name" 
+              value={formData.name} 
+              onChange={handleChange}
+              maxLength={25}
               className="w-full bg-slate-50 p-4 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-slate-800"
               placeholder="Your Name"
             />
           </div>
 
+          {/* PROFESSIONAL TITLE */}
           <div className="space-y-2">
-            <label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-              <Briefcase size={14}/> Professional Title
-            </label>
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <Briefcase size={14}/> Professional Title
+              </label>
+              <span className={`text-[10px] font-black uppercase tracking-wider ${formData.title.length >= 35 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`}>
+                {formData.title.length} / 40
+              </span>
+            </div>
             <input 
-              name="title" value={formData.title} onChange={handleChange}
+              name="title" 
+              value={formData.title} 
+              onChange={handleChange}
+              maxLength={40}
               className="w-full bg-slate-50 p-4 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-slate-800"
               placeholder="e.g. Senior React Developer"
             />
@@ -105,15 +159,15 @@ export default function UserProfile({ state, setters, actions }: any) {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <label className="text-xs font-black uppercase tracking-widest text-slate-500">Bio / What you teach</label>
-              <span className={`text-[10px] font-black uppercase tracking-wider ${formData.bio.length > 130 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`}>
-                {formData.bio.length} / 150
+              <span className={`text-[10px] font-black uppercase tracking-wider ${formData.bio.length > 85 ? 'text-red-500 animate-pulse' : 'text-slate-400'}`}>
+                {formData.bio.length} / 100
               </span>
             </div>
             <textarea 
               name="bio" 
               value={formData.bio} 
               onChange={handleChange} 
-              maxLength={150} 
+              maxLength={100} 
               rows={4}
               className="w-full bg-slate-50 p-4 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-slate-800 resize-none"
               placeholder="Tell others what you can teach them..."

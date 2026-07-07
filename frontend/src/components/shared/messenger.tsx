@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, X, MoreVertical, Flag, MessageSquare, ShieldAlert, 
   Star, Trash2, AlertTriangle, Maximize2, Minimize2, 
-  Paperclip 
+  Paperclip, Check
 } from 'lucide-react';
 
 export default function Messenger({ state, setters, chatEndRef, actions }: any) {
@@ -26,13 +26,16 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
   const livePartner = partner ? (state.allMatches.find((m: any) => m.id === partner.id) || partner) : null;
 
+  // Checks if the active user has already left a review in their partner's review list
+  const alreadyReviewed = livePartner?.reviews?.some((r: any) => r.id === state.userId);
+
   useEffect(() => {
     if (!state.showChat) setIsMaximized(false);
   }, [state.showChat]);
 
   const handleSubmitReview = (e: React.FormEvent) => {
     e.preventDefault();
-    if (livePartner) {
+    if (livePartner && !alreadyReviewed) {
       actions.submitReview(livePartner.id, reviewRating, reviewComment);
       setShowReviewModal(false);
       setReviewComment("");
@@ -151,10 +154,18 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
                     <MoreVertical size={20} />
                   </button>
                   {showSafetyMenu && (
-                    <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl border-2 border-slate-50 p-3 z-50">
-                      <button type="button" onClick={() => { setShowReviewModal(true); setShowSafetyMenu(false); }} className="flex items-center gap-3 cursor-pointer w-full text-left px-4 py-4 text-[11px] font-black uppercase text-indigo-600 hover:bg-indigo-50 rounded-2xl">
-                        <Star size={16} /> Rate & Review Session
-                      </button>
+                    <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl border-2 border-slate-50 p-3 z-50 text-left">
+                      
+                      {alreadyReviewed ? (
+                        <div className="flex items-center gap-3 w-full text-left px-4 py-4 text-[11px] font-black uppercase text-slate-400 bg-slate-50 rounded-2xl cursor-not-allowed select-none">
+                          <Check size={16} className="text-emerald-500 shrink-0" /> Session Already Reviewed
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => { setShowReviewModal(true); setShowSafetyMenu(false); }} className="flex items-center gap-3 cursor-pointer w-full text-left px-4 py-4 text-[11px] font-black uppercase text-indigo-600 hover:bg-indigo-50 rounded-2xl">
+                          <Star size={16} /> Rate & Review Session
+                        </button>
+                      )}
+
                       <button type="button" onClick={() => { setShowDeleteModal(true); setShowSafetyMenu(false); }} className="flex items-center gap-3 cursor-pointer w-full text-left px-4 py-4 text-[11px] font-black uppercase text-slate-600 hover:bg-slate-50 rounded-2xl">
                         <Trash2 size={16} /> Delete Conversation
                       </button>
@@ -193,15 +204,15 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
             ) : (
               <>
                 {partner.rating < 4.0 ? (
-                  <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-4 flex items-start gap-4 mb-8">
-                    <div className="bg-red-500 p-2 rounded-xl text-white"><AlertTriangle size={18} /></div>
+                  <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-4 flex items-start gap-4 mb-8 text-left">
+                    <div className="bg-red-500 p-2 rounded-xl text-white shrink-0"><AlertTriangle size={18} /></div>
                     <div>
                       <p className="text-[11px] font-black text-red-800 uppercase tracking-wider mb-1">Low Rating Warning</p>
                       <p className="text-xs text-red-700 font-bold leading-relaxed">This user has an average rating below 4.0. Please exercise caution before commencing a session.</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-4 flex items-start gap-4 mb-8">
+                  <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-4 flex items-start gap-4 mb-8 text-left">
                     <div className="bg-amber-100 p-2 rounded-xl flex items-center justify-center shrink-0">
                       <ShieldAlert size={18} className="text-amber-600" />
                     </div>
@@ -231,7 +242,19 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
                             )}
 
                           </div>
-                          <span className="text-[10px] font-black text-slate-400 mt-2 uppercase px-2">{m.timestamp}</span>
+                          
+                          <div className="flex items-center gap-1.5 mt-2 px-2">
+                            <span className="text-[10px] font-black text-slate-400 uppercase">{m.timestamp}</span>
+                            {m.sender === 'me' && (
+                              <span className="text-[9px] font-black uppercase tracking-wider">
+                                {m.isRead ? (
+                                  <span className="text-emerald-500">✓ Seen</span>
+                                ) : (
+                                  <span className="text-slate-400">Sent</span>
+                                )}
+                              </span>
+                            )}
+                          </div>
                       </div>
                   ))
                 )}
@@ -272,7 +295,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
       {showDeleteModal && livePartner && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl">
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-[1.5rem] flex items-center justify-center mb-6">
               <Trash2 size={32} />
             </div>
@@ -290,7 +313,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
       {showReportModal && livePartner && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl">
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-[1.5rem] flex items-center justify-center mb-6">
               <Flag size={32} />
             </div>
@@ -316,23 +339,65 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
         </div>
       )}
 
+      {/* Review Modal with balance guards */}
       {showReviewModal && livePartner && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl">
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
             <h2 className="text-2xl font-black text-slate-900 mb-2">Leave a Review</h2>
-            <p className="text-sm font-bold text-slate-500 mb-8">How was your session with {livePartner.name}?</p>
+            <p className="text-sm font-bold text-slate-500 mb-6">How was your session with {livePartner.name}?</p>
+            
+            {/* Display correct validation feedback dynamically based on selected stars */}
+            {reviewRating >= 4 && state.hoursBalance <= 0 ? (
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-6 text-left animate-in fade-in duration-300">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+                  <div>
+                    <h4 className="font-black text-amber-800 text-xs uppercase tracking-wider mb-1">Insufficient Barter Hours</h4>
+                    <p className="text-xs text-amber-700 font-medium leading-relaxed">
+                      Leaving a high-rated review (4★-5★) transfers **1 Barter Hour** to {livePartner.name}. You currently have **0 Hours**.
+                      You can still submit a constructive low-rating review (1★-3★) for free, or teach others first to earn hours!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-xs text-indigo-700 font-bold mb-6 animate-in fade-in duration-300">
+                💡 {reviewRating < 4 
+                  ? "Constructive Low Rating Rule: No hours will be deducted from your balance for ratings below 4★." 
+                  : `High Rating Rule: Submitting a positive rating will transfer 1 Barter Hour to ${livePartner.name}.`
+                }
+              </div>
+            )}
+
             <form onSubmit={handleSubmitReview}>
               <div className="flex gap-2 justify-center mb-8">
                 {[1, 2, 3, 4, 5].map(star => (
-                  <button type="button" key={star} onClick={() => setReviewRating(star)} className="cursor-pointer">
+                  <button 
+                    type="button" 
+                    key={star} 
+                    onClick={() => setReviewRating(star)} 
+                    className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                  >
                     <Star size={40} className={star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-200"} />
                   </button>
                 ))}
               </div>
-              <textarea required placeholder="Write your experience here..." value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 min-h-[120px] mb-6" />
+              <textarea 
+                required 
+                placeholder="Write your experience here..." 
+                value={reviewComment} 
+                onChange={(e) => setReviewComment(e.target.value)} 
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 min-h-[120px] mb-6" 
+              />
               <div className="flex gap-4">
                 <button type="button" onClick={() => setShowReviewModal(false)} className="flex-1 bg-slate-100 text-slate-600 font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-slate-200 transition cursor-pointer flex items-center justify-center">Cancel</button>
-                <button type="submit" className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-indigo-700 shadow-xl transition cursor-pointer flex items-center justify-center">Submit</button>
+                <button 
+                  type="submit" 
+                  disabled={reviewRating >= 4 && state.hoursBalance <= 0} 
+                  className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-indigo-700 shadow-xl transition cursor-pointer flex items-center justify-center disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
+                >
+                  Submit Review
+                </button>
               </div>
             </form>
           </div>

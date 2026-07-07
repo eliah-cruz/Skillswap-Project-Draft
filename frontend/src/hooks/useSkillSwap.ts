@@ -1,5 +1,3 @@
-// hooks/useSkillSwap.ts
-
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../lib/supabase";
@@ -20,6 +18,11 @@ export function useSkillSwap() {
   const [userName, setUserName] = useState("User");
   const [userEmail, setUserEmail] = useState("");
   
+  // Custom auth verification loader states
+  const [isVerifyingAuth, setIsVerifyingAuth] = useState(false);
+  const [authStatusMessage, setAuthStatusMessage] = useState("");
+  const [authSuccess, setAuthSuccess] = useState(false);
+
   const loadedUserIdRef = useRef<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -37,6 +40,7 @@ export function useSkillSwap() {
 
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
 
+  // Strict verification: user must configure both teachable and desired skills to proceed
   const hasSkillsConfigured = useMemo(() => {
     return mySkills.length > 0 && myNeeds.length > 0;
   }, [mySkills, myNeeds]);
@@ -102,6 +106,20 @@ export function useSkillSwap() {
       if (session) {
         const isSameUser = loadedUserIdRef.current === session.user.id;
         
+        // Multi-stage verification screen delay so users can read updates
+        if (event === 'SIGNED_IN' && !isSameUser) {
+          setIsVerifyingAuth(true);
+          setAuthSuccess(false);
+          setAuthStatusMessage("Validating authentication credentials...");
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          setAuthStatusMessage("Securing peer-to-peer workspace session...");
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          setAuthStatusMessage("Magic Link verified! Setting up dashboard...");
+          setAuthSuccess(true);
+          await new Promise(resolve => setTimeout(resolve, 1200));
+          setIsVerifyingAuth(false);
+        }
+
         setIsLoggedIn(true);
         setUserId(session.user.id);
         setUserEmail(session.user.email || "");
@@ -147,19 +165,29 @@ export function useSkillSwap() {
     const s = getSocket();
     if (!s || !userId) return;
 
-    s.on("receive_message", (data) => {
+    s.on("receive_message", async (data) => {
       if (data.sender_id === userId) return;
+
+      const isChatOpenWithThisUser = activeChatPartner?.id === data.sender_id && showChat;
 
       const newMsg: Message = {
         id: data.message_id || Date.now().toString(),
         sender: "them",
         text: data.content,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        isRead: true,
+        timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isRead: isChatOpenWithThisUser,
         type: data.message_type,
         fileName: data.file_name,
         fileUrl: data.file_url
       };
+
+      if (isChatOpenWithThisUser && currentMatchId) {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .eq('message_id', data.message_id);
+        s.emit("mark_seen", { match_id: currentMatchId, user_id: userId });
+      }
 
       setMessages((prev) => [...prev, newMsg]);
 
@@ -167,6 +195,14 @@ export function useSkillSwap() {
         ...prev,
         [data.sender_id]: [newMsg]
       }));
+    });
+
+    s.on("messages_marked_seen", ({ match_id, reader_id }) => {
+      if (reader_id !== userId) {
+        setMessages((prev) =>
+          prev.map((m) => (m.sender === 'me' ? { ...m, isRead: true } : m))
+        );
+      }
     });
 
     s.on("partner_typing", (isTyping) => setIsPartnerTyping(isTyping));
@@ -177,10 +213,11 @@ export function useSkillSwap() {
 
     return () => {
       s.off("receive_message");
+      s.off("messages_marked_seen");
       s.off("partner_typing");
       s.off("user_status_change");
     };
-  }, [userId]);
+  }, [userId, activeChatPartner, showChat, currentMatchId]);
 
   // Real-Time profile and dynamic skill synchronization
   useEffect(() => {
@@ -295,7 +332,6 @@ export function useSkillSwap() {
       const blockedList = blocks ? blocks.map(b => b.blocked_id) : [];
       setBlockedUsers(blockedList);
 
-      // Secure: Only locks the unblock button if report status is still actively pending review [19]
       const { data: userReports } = await supabase
         .from('reports')
         .select('reported_id')
@@ -350,38 +386,42 @@ export function useSkillSwap() {
       const dbReviews = (rawReviews || []) as any[];
       
       if (otherUsers) {
-        const formattedMatches: Match[] = otherUsers.map(u => {
-          const userReviews = dbReviews
-            .filter((r: any) => r.reviewee_id === u.user_id)
-            .map((r: any) => ({
-              id: r.reviewer_id,
-              reviewer: r.users?.username || "Anonymous",
-              rating: r.rating,
-              comment: r.comment
-            }));
+        // Enforce comprehensive verification: other peers must have both teachable and desired skills
+        const formattedMatches: Match[] = otherUsers
+          .filter(u => u.teachable_skills && u.teachable_skills.length > 0 && u.desired_skills && u.desired_skills.length > 0)
+          .map(u => {
+            const userReviews = dbReviews
+              .filter((r: any) => r.reviewee_id === u.user_id)
+              .map((r: any) => ({
+                id: r.reviewer_id,
+                reviewer: r.users?.username || "Anonymous",
+                rating: r.rating,
+                comment: r.comment
+              }));
 
-          const parsedRating = parseFloat(u.average_rating as string) || 0;
+            const parsedRating = parseFloat(u.average_rating as string) || 0;
 
-          return {
-            id: u.user_id,
-            name: u.username,
-            teaching: u.teachable_skills?.map((t:any) => t.skills.skill_name).join(', ') || "Various Skills",
-            needs: u.desired_skills?.map((d:any) => d.skills.skill_name).join(', ') || "Eager to learn",
-            rating: parsedRating === 0 ? 5.0 : parsedRating, 
-            reviewCount: userReviews.length,
-            reviews: userReviews,
-            avatar: u.username.substring(0, 2).toUpperCase(),
-            status: u.is_online && !u.is_hidden ? 'Online' : 'Offline',
-            category: u.teachable_skills && u.teachable_skills.length > 0 ? (categoryMap[u.teachable_skills[0].skills.skill_name] || "Development") : "Development", 
-            title: u.title || "SkillSwapper",
-            location: u.location,
-            availability: u.availability,
-            experienceLevel: u.experience_level,
-            bio: u.bio,
-            isVerified: u.teachable_skills?.length >= 3,
-            hoursBalance: u.hours_balance ?? 3 
-          };
-        });
+            return {
+              id: u.user_id,
+              name: u.username,
+              teaching: u.teachable_skills?.map((t:any) => t.skills.skill_name).join(', ') || "Various Skills",
+              needs: u.desired_skills?.map((d:any) => d.skills.skill_name).join(', ') || "Eager to learn",
+              rating: parsedRating === 0 ? 5.0 : parsedRating, 
+              reviewCount: userReviews.length,
+              reviews: userReviews,
+              avatar: u.username.substring(0, 2).toUpperCase(),
+              status: u.is_online && !u.is_hidden ? 'Online' : 'Offline',
+              category: u.teachable_skills && u.teachable_skills.length > 0 ? (categoryMap[u.teachable_skills[0].skills.skill_name] || "Development") : "Development", 
+              title: u.title || "SkillSwapper",
+              location: u.location,
+              availability: u.availability,
+              experienceLevel: u.experience_level,
+              bio: u.bio,
+              isVerified: u.teachable_skills?.length >= 3,
+              hoursBalance: u.hours_balance ?? 3,
+              createdAt: u.created_at
+            };
+          });
         setAllMatches(formattedMatches);
       }
     } catch (err) {
@@ -490,8 +530,24 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
-  const saveProfile = async (newData: Partial<UserProfile> & { name?: string }) => {
+  const saveProfile = async (newData: Partial<UserProfile> & { name?: string }, silent = false) => {
     if (!userId) return;
+
+    if (newData.bio && newData.bio.length > 100) {
+      if (!silent) triggerToast("Bio cannot exceed 100 characters.");
+      return;
+    }
+    
+    if (newData.title && newData.title.length > 40) {
+      if (!silent) triggerToast("Professional title cannot exceed 40 characters.");
+      return;
+    }
+
+    if (newData.name && newData.name.length > 25) {
+      if (!silent) triggerToast("Display name cannot exceed 25 characters.");
+      return;
+    }
+
     const merged = { ...userProfile, ...newData };
     const nameToSave = newData.name !== undefined ? newData.name : userName;
     
@@ -503,6 +559,11 @@ export function useSkillSwap() {
       availability: merged.availability || "Flexible"
     });
     setUserName(nameToSave);
+
+    if (!silent) {
+      setActiveTab(isAdmin ? 'admin' : 'hub'); 
+      triggerToast("Profile updated successfully!");
+    }
     
     await supabase.from('users').update({
         username: nameToSave,
@@ -513,7 +574,6 @@ export function useSkillSwap() {
         availability: merged.availability
     }).eq('user_id', userId);
 
-    triggerToast("Profile updated successfully!");
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
@@ -522,6 +582,9 @@ export function useSkillSwap() {
     const merged = { ...userSettings, ...newData };
     setUserSettings(merged);
     
+    setActiveTab(isAdmin ? 'admin' : 'hub'); 
+    triggerToast("Settings saved successfully!");
+
     await supabase.from('user_settings').upsert({
         user_id: userId,
         email_notifications: merged.emailNotifications,
@@ -534,7 +597,6 @@ export function useSkillSwap() {
     const s = getSocket();
     if (s) s.emit('register_user', userId);
 
-    triggerToast("Settings saved successfully!");
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
@@ -561,7 +623,14 @@ export function useSkillSwap() {
     setCurrentMatchId(mId);
     
     const s = getSocket();
-    if (s && mId) s.emit('join_room', mId);
+    if (s && mId) {
+      s.emit('join_room', mId);
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .match({ match_id: mId, sender_id: partner.id });
+      s.emit("mark_seen", { match_id: mId, user_id: userId });
+    }
 
     const { data: msgHistory } = await supabase.from('messages').select('*').eq('match_id', mId).order('timestamp', { ascending: true });
     if (msgHistory) {
@@ -587,7 +656,7 @@ export function useSkillSwap() {
       });
     }
 
-    const myNewMsg: Message = { id: Date.now().toString(), sender: 'me', text: chatInput, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true };
+    const myNewMsg: Message = { id: Date.now().toString(), sender: 'me', text: chatInput, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: false };
     
     setMessages(prev => [...prev, myNewMsg]);
     setChatInput(""); 
@@ -609,7 +678,7 @@ export function useSkillSwap() {
       });
     }
 
-    const myNewMsg: Message = { id: Date.now().toString(), sender: 'me', text: '', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: true, type: 'file', fileName: fileData.fileName, fileUrl: fileData.fileUrl };
+    const myNewMsg: Message = { id: Date.now().toString(), sender: 'me', text: '', timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), isRead: false, type: 'file', fileName: fileData.fileName, fileUrl: fileData.fileUrl };
     
     setMessages(prev => [...prev, myNewMsg]);
 
@@ -635,7 +704,6 @@ export function useSkillSwap() {
     triggerToast("User blocked.");
   };
 
-  // Secure unblock handler preventing manual unblocking of active reports [19]
   const unblockUser = async (partnerId: string) => {
     if(!userId) return;
     
@@ -656,17 +724,12 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
-  // Automatically blocks the reported user so they show up in the block list
   const reportUser = async (reportedId: string, reason: string = 'Other') => {
     if(!userId) return;
     
-    // 1. Insert into reports DB
     await supabase.from('reports').insert([{ reporter_id: userId, reported_id: reportedId, reason }]);
-    
-    // 2. Insert into blocks DB (Automatic Link)
     await supabase.from('blocks').insert([{ blocker_id: userId, blocked_id: reportedId }]);
     
-    // Update local variables so UI changes render instantly
     setReportedUsers(prev => [...prev, reportedId]);
     if (!blockedUsers.includes(reportedId)) {
       setBlockedUsers(prev => [...prev, reportedId]);
@@ -709,9 +772,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
-  // Multi-tier resolver (Confirm infractions or Dismiss false alarms with programmatic block removals) [19, 21, 28]
   const resolveReport = async (reportId: string, status: 'Resolved' | 'Dismissed' = 'Resolved', reporterId?: string, reportedId?: string) => {
-    // 1. Update Database [28]
     const { error } = await supabase
       .from('reports')
       .update({ status })
@@ -723,7 +784,6 @@ export function useSkillSwap() {
       return;
     }
 
-    // 2. Clear block record if dismissed as a false alarm [19]
     if (status === 'Dismissed' && reporterId && reportedId) {
       await supabase
         .from('blocks')
@@ -731,7 +791,6 @@ export function useSkillSwap() {
         .match({ blocker_id: reporterId, blocked_id: reportedId });
     }
 
-    // 3. Socket broadcast [15, 16]
     const s = getSocket();
     if (s) {
       s.emit("resolve_report", { report_id: reportId, status });
@@ -746,13 +805,15 @@ export function useSkillSwap() {
   const submitReview = async (revieweeId: string, rating: number, comment: string) => {
     if(!userId || !currentMatchId) return;
 
-    if (hoursBalance <= 0) {
-      triggerToast("Transaction Blocked: You have 0 Barter Hours remaining. Teach someone to earn hours!");
+    // Strict time-bank guard: High ratings (>= 4★) require at least 1 Barter Hour to review.
+    // Constructive reviews with low ratings (< 4★) are processed for free.
+    if (rating >= 4 && hoursBalance <= 0) {
+      triggerToast("Transaction Blocked: Writing a high-rated review requires 1 Barter Hour.");
       return;
     }
 
     await supabase.from('reviews').insert([{ match_id: currentMatchId, reviewer_id: userId, reviewee_id: revieweeId, rating, comment }]);
-    triggerToast("Feedback submitted successfully!");
+    triggerToast(rating < 4 ? "Constructive feedback saved! Your balance remains unchanged." : "Feedback submitted successfully! 1 hour transferred.");
     await loadFullDatabaseState(userId, userEmail, null, true); 
   };
 
@@ -769,7 +830,8 @@ export function useSkillSwap() {
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
         if (isSearching) return true;
-        return m.rating >= 4.0 || m.reviewCount === 0;
+        if (sortBy === "Top Rated") return m.rating >= 4.0;
+        return true;
       })
       .map(person => {
         const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));
@@ -816,9 +878,17 @@ export function useSkillSwap() {
       return catMatch && onlineMatch;
     });
 
-    if (sortBy === "Top Rated") scoredResults.sort((a, b) => b.rating - a.rating);
-    else if (sortBy === "Newest") scoredResults.sort((a, b) => b.id.localeCompare(a.id));
-    else scoredResults.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+    if (sortBy === "Top Rated") {
+      scoredResults.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
+    } else if (sortBy === "Newest") {
+      scoredResults.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      });
+    } else {
+      scoredResults.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+    }
 
     return scoredResults;
   }, [allMatches, mySkills, myNeeds, onlineOnly, activeCategoryFilter, searchQuery, sortBy, onboardingCategory, blockedUsers, reportedUsers]);
@@ -827,7 +897,10 @@ export function useSkillSwap() {
     return allMatches.filter(m => activeChatIDs.includes(m.id) && !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id));
   }, [activeChatIDs, blockedUsers, reportedUsers, allMatches]);
 
-  const state = { loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, isAdmin, socket: getSocket() };
+  const state = { 
+    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, isAdmin, socket: getSocket(),
+    isVerifyingAuth, authStatusMessage, authSuccess
+  };
   const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance };
   
   const actions = { 

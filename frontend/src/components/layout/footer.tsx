@@ -11,12 +11,11 @@ export default function Footer({ state, setters }: any) {
         {/* Top section: Logo and Links */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-8 mb-12">
           
-          {/* Logo - Fully Active */}
+          {/* Logo */}
           <div 
             className="flex items-center gap-4 group cursor-pointer"
             onClick={() => {
               if (state.isLoggedIn && setters) {
-                // Redirects Admin back to 'admin' home, and standard users to 'hub'
                 setters.setActiveTab(state.isAdmin ? 'admin' : 'hub');
               }
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -28,7 +27,7 @@ export default function Footer({ state, setters }: any) {
             <span className="text-2xl tracking-tighter font-black text-slate-900">Skill<span className="text-indigo-600 italic">Swap</span></span>
           </div>
 
-          {/* Links - Fully Active */}
+          {/* Links */}
           <div className="flex items-center gap-8 animate-in fade-in duration-300">
               <Link href="/team" className="relative group text-slate-500 text-xs font-black tracking-widest hover:text-indigo-600 transition-colors">
                 Team
@@ -41,7 +40,7 @@ export default function Footer({ state, setters }: any) {
           </div>
         </div>
 
-        {/* Bottom Section: Copyright */}
+        {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-8 border-t border-slate-50 text-center md:text-left">
             <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
               © {state.year} SkillSwap • Built for the Community
@@ -52,17 +51,6 @@ export default function Footer({ state, setters }: any) {
         </div>
 
       </div>
-
-      {/* Floating Scroll to Top Button */}
-      <button 
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} 
-        className={`cursor-pointer fixed bottom-8 right-8 z-[150] transition-all duration-500 transform group ${state.showScroll ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"}`}
-      >
-          <span className="absolute inset-0 rounded-full bg-indigo-400 opacity-75 animate-ping"></span>
-          <div className="relative bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg shadow-indigo-200 transition-transform active:scale-90">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
-          </div>
-      </button>
     </footer>
   );
 }

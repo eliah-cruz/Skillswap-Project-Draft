@@ -39,7 +39,7 @@ export default function OnboardingStep({ state, setters, actions }: any) {
       actions.triggerToast("Please select at least 1 teachable skill to continue.");
       return;
     }
-    setters.setOnboardingCategory(null); // Reset category selector for Step 2
+    setters.setOnboardingCategory(null); 
     setOnboardingStep(2);
   };
 
@@ -160,7 +160,7 @@ export default function OnboardingStep({ state, setters, actions }: any) {
                     disabled={selectedTeachSkills.length === 0}
                     className="cursor-pointer bg-slate-950 text-white px-8 py-3.5 rounded-2xl text-sm font-black disabled:opacity-40 transition-all hover:bg-indigo-600 flex items-center gap-2"
                   >
-                    Next Step <ArrowRight size={16} />
+                    Add Desired Skill to Verify <ArrowRight size={16} />
                   </button>
                 ) : (
                   <button 

@@ -1,10 +1,10 @@
 "use client";
-import React from 'react';
+import React, { useState } from 'react';
 import Loader1 from "../shared/loader1";
 
 export default function LandingHero({ state, setters, actions }: any) {
+  const [fullName, setFullName] = useState("");
   
-  // Helper to switch between Login and Sign Up UI contexts
   const handleToggle = (view: boolean) => {
     setters.setIsLoginView(view);
   };
@@ -49,9 +49,15 @@ export default function LandingHero({ state, setters, actions }: any) {
                   required 
                   name="fullName" 
                   type="text" 
+                  maxLength={25}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   placeholder="Full Name" 
-                  className="w-full bg-slate-50/50 py-4.5 pl-14 pr-6 rounded-2xl border border-slate-100 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 font-medium text-slate-700 transition-all" 
+                  className="w-full bg-slate-50/50 py-4.5 pl-14 pr-12 rounded-2xl border border-slate-100 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 font-medium text-slate-700 transition-all" 
                 />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">
+                  {fullName.length}/25
+                </span>
               </div>
             )}
             

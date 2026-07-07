@@ -1,3 +1,9 @@
+export interface AuthState {
+  isVerifyingAuth: boolean;
+  authSuccess: boolean;
+  authStatusMessage: string;
+}
+
 export interface Message {
   id: string;
   sender: 'me' | 'them';
@@ -37,6 +43,8 @@ export type Match = {
   isMutualMatch?: boolean;
   isCircularMatch?: boolean; 
   isVerified?: boolean;
+  hoursBalance?: number;
+  createdAt?: string;
 };
 
 export type Category = {

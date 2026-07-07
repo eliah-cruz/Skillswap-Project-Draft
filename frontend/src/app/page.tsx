@@ -15,11 +15,13 @@ import Toast from "../components/shared/toast";
 import SkillDirectory from "../components/shared/skilldirectory";
 import AdminPanel from "../components/dashboard/adminpanel";
 import { ShieldCheck, Sparkles } from "lucide-react";
+import AuthVerificationScreen from "../components/shared/authverificationscreen";
 
 export default function Home() {
   const { state, setters, actions } = useSkillSwap();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [isCallbackTab, setIsCallbackTab] = useState(false);
+  const [countdown, setCountdown] = useState(5);
 
   // Security Cleanup for Legacy Mock Storage Artifacts
   useEffect(() => {
@@ -28,27 +30,33 @@ export default function Home() {
     }
   }, []);
 
-  // Auto-Tab Closing Check
+  // Detect Redirect Callback Tab
   useEffect(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash;
       const query = window.location.search;
       
-      // If URL contains credentials or is a routing code callback
       if (hash.includes("access_token") || query.includes("code=")) {
         setIsCallbackTab(true);
-
-        // Keep this duplicate tab open for 3 seconds to let Supabase write local storage tokens, then shut down
-        setTimeout(() => {
-          try {
-            window.close();
-          } catch (err) {
-            console.log("Programmatic window close restricted by browser sandbox.");
-          }
-        }, 3500);
       }
     }
   }, []);
+
+  // Countdown timer and auto-close logic
+  useEffect(() => {
+    if (isCallbackTab && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (isCallbackTab && countdown === 0) {
+      try {
+        window.close();
+      } catch (err) {
+        console.log("Programmatic window close restricted by browser sandbox.");
+      }
+    }
+  }, [isCallbackTab, countdown]);
 
   const scrollTo = (id: string) => {
     const element = document.getElementById(id);
@@ -67,7 +75,6 @@ export default function Home() {
     }
   }, [state.messages, state.isPartnerTyping, state.showChat]);
 
-  // If this is a newly opened redirect tab from Gmail
   if (isCallbackTab) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 animate-in fade-in duration-500">
@@ -77,10 +84,23 @@ export default function Home() {
           </div>
           <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Verified Successfully!</h2>
           <p className="text-slate-500 font-bold text-sm leading-relaxed mb-6">
-            Authentication is complete. Your original open browser window has logged in automatically.
+            Authentication complete. Your session is active.
           </p>
-          <div className="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase rounded-lg tracking-widest inline-flex items-center gap-1.5">
-            <Sparkles size={12} className="animate-spin-slow" /> Auto-Closing Tab...
+
+          <div className="flex flex-col gap-4 items-center">
+            <button 
+              onClick={() => {
+                window.location.href = window.location.origin;
+              }}
+              className="bg-indigo-600 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-slate-900 transition-all cursor-pointer shadow-lg shadow-indigo-200 w-full"
+            >
+              Enter SkillSwap Hub
+            </button>
+
+            <div className="px-4 py-2 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase rounded-lg tracking-widest inline-flex items-center gap-1.5">
+              <Sparkles size={12} className="animate-pulse" /> 
+              {countdown > 0 ? `Auto-closing tab in ${countdown}s...` : "Feel free to close this tab"}
+            </div>
           </div>
         </div>
       </div>
@@ -113,7 +133,7 @@ export default function Home() {
             {state.activeTab === 'settings' && <UserSettings state={state} setters={setters} actions={actions} />}
             {state.activeTab === 'chat' && <DashboardHub state={state} setters={setters} actions={actions} />}
             
-            {/* Secure Route Guard: Only renders AdminPanel if user is a verified administrator */}
+            {/* Secure Route Guard */}
             {state.activeTab === 'admin' && state.isAdmin && <AdminPanel state={state} setters={setters} actions={actions} />}
           </>
         ) : (
@@ -125,6 +145,7 @@ export default function Home() {
       </div>
 
       <SkillDirectory state={state} setters={setters} actions={actions} />
+      <AuthVerificationScreen state={state} />
       <Toast toast={state.toast} />
       
       <Messenger 
@@ -134,7 +155,19 @@ export default function Home() {
         chatEndRef={chatEndRef} 
       />
       
-      <Footer state={state} setters={setters} />
+      {/* Footer hidden after user log in or sign in */}
+      {!state.isLoggedIn && <Footer state={state} setters={setters} />}
+
+      {/* Global Scroll up button (renders in both landing and dashboard hub views) */}
+      <button 
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} 
+        className={`cursor-pointer fixed bottom-8 right-8 z-[150] transition-all duration-500 transform group ${state.showScroll ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"}`}
+      >
+          <span className="absolute inset-0 rounded-full bg-indigo-400 opacity-75 animate-ping"></span>
+          <div className="relative bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-full shadow-lg shadow-indigo-200 transition-transform active:scale-90">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+          </div>
+      </button>
     </main>
   );
 }

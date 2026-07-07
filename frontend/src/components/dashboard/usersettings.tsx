@@ -1,11 +1,8 @@
-// components/dashboard/usersettings.tsx
-
 "use client";
 import React, { useState } from 'react';
 import { Settings, Bell, Eye, Save } from 'lucide-react';
 
 export default function UserSettings({ state, setters, actions }: any) {
-  // Use a functional state initializer to avoid losing typing focus on toggles
   const [formData, setFormData] = useState(() => ({
     emailNotifications: state.userSettings.emailNotifications,
     showOnlineStatus: state.userSettings.showOnlineStatus,
@@ -18,8 +15,7 @@ export default function UserSettings({ state, setters, actions }: any) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await actions.saveSettings(formData);
-    setters.setActiveTab(state.isAdmin ? 'admin' : 'hub'); 
+    await actions.saveSettings(formData); // Transition to dashboard handled instantly inside the action hook
   };
 
   return (
@@ -41,7 +37,6 @@ export default function UserSettings({ state, setters, actions }: any) {
                   <p className="text-[11px] font-bold text-slate-500">Receive an email when you get a new match or message.</p>
                 </div>
               </div>
-              {/* FIXED: Changed bg-indigo-50 to bg-indigo-600 to show correct active state */}
               <button type="button" onClick={() => handleToggle('emailNotifications')} className={`w-14 h-8 rounded-full transition-colors relative cursor-pointer ${formData.emailNotifications ? 'bg-indigo-600' : 'bg-slate-300'}`}>
                 <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${formData.emailNotifications ? 'left-7' : 'left-1'}`}></div>
               </button>

@@ -12,7 +12,6 @@ export default function SkillDirectory({ state, setters, actions }: any) {
   const activeList = isLearning ? state.myNeeds : state.mySkills;
 
   return (
-    // UI FIX: Changed to z-[500] and backdrop-blur-md
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white rounded-[4rem] w-full max-w-2xl overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] border-4 border-white flex flex-col max-h-[85vh] relative">
         
@@ -22,9 +21,8 @@ export default function SkillDirectory({ state, setters, actions }: any) {
               <LayoutGrid size={28} strokeWidth={2.5} />
             </div>
             <div className="text-left">
-              {/* UI FIX: Added (Max 5) to the header */}
               <h3 className="font-black text-slate-900 uppercase tracking-[0.2em] text-sm">
-                {isLearning ? "What do you want to learn?" : "What can you teach?"} <span className="text-slate-400 text-xs">(Max 5)</span>
+                {isLearning ? "What do you want to learn?" : "What can you teach?"} <span className="text-slate-400 text-xs font-extrabold">(Max 5)</span>
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <Sparkles size={14} className="text-amber-500 fill-amber-500" />

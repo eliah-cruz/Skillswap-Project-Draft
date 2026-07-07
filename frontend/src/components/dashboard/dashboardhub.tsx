@@ -1,5 +1,3 @@
-// components/dashboard/dashboardhub.tsx
-
 "use client";
 import React, { useState, useEffect } from 'react';
 import { 
@@ -12,7 +10,6 @@ import {
 export default function DashboardHub({ state, setters, actions }: any) {
   const recentPartners = state.activeChatUsers || [];
   
-  // Displays both personally blocked and reported users in the sidebar list (Optimization)
   const blockedList = state.allMatches.filter((m: any) => 
     state.blockedUsers.includes(m.id) || state.reportedUsers.includes(m.id)
   );
@@ -26,6 +23,10 @@ export default function DashboardHub({ state, setters, actions }: any) {
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 4; 
 
+  // Secondary pagination state for expanding member reviews
+  const [reviewPage, setReviewPage] = useState(1);
+  const reviewsPerPage = 2;
+
   useEffect(() => {
     setCurrentPage(1);
   }, [state.activeCategoryFilter, state.searchQuery, state.onlineOnly]);
@@ -36,6 +37,10 @@ export default function DashboardHub({ state, setters, actions }: any) {
       setReportTarget(null);
     }
   }, [state.showChat]);
+
+  useEffect(() => {
+    setReviewPage(1);
+  }, [expandedReviewId]);
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -88,6 +93,35 @@ export default function DashboardHub({ state, setters, actions }: any) {
   return (
     <section className="container mx-auto px-5 py-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
+      {/* High-Performance GPU Match & Glow Animation Keyframes */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.3); }
+          50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.5); border-color: rgba(245, 158, 11, 0.7); }
+        }
+        @keyframes matchParticles {
+          0% { transform: scale(0.95); filter: brightness(1); }
+          50% { transform: scale(1.02); filter: brightness(1.05); }
+          100% { transform: scale(1); filter: brightness(1); }
+        }
+        @keyframes newMemberPulse {
+          0%, 100% { border-color: #a7f3d0; box-shadow: 0 0 8px rgba(16, 185, 129, 0.1); }
+          50% { border-color: #34d399; box-shadow: 0 0 16px rgba(16, 185, 129, 0.3); }
+        }
+        .animate-glow-amber {
+          animation: glowPulse 2s infinite ease-in-out;
+          will-change: box-shadow, border-color;
+        }
+        .animate-match-boost {
+          animation: matchParticles 0.8s ease-out forwards;
+          will-change: transform, filter;
+        }
+        .animate-new-pulse {
+          animation: newMemberPulse 3s infinite ease-in-out;
+          will-change: border-color, box-shadow;
+        }
+      `}} />
+
       {/* Top Search & Filter Bar */}
       <div className="sticky top-24 z-20 space-y-4">
         <div className="flex flex-col md:flex-row gap-4 max-w-6xl mx-auto">
@@ -163,8 +197,48 @@ export default function DashboardHub({ state, setters, actions }: any) {
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                 {paginatedMatches.map((m: any) => {
+                  const isNewMember = m.reviewCount === 0;
                   const isLowRated = m.rating < 4.0 && m.reviewCount > 0;
+                  const isHighRated = m.rating >= 4.5 && m.reviewCount > 0;
                   
+                  // Decide Dynamic Card Borders & Badges based on active Filters
+                  let cardBorderClass = "border-slate-100";
+                  let cardBgClass = "bg-white";
+                  let cardGlowEffect = "";
+
+                  if (state.sortBy === "Recommended") {
+                    if (m.isMutualMatch) {
+                      cardBorderClass = "border-indigo-400";
+                      cardBgClass = "bg-gradient-to-br from-white via-indigo-50/5 to-indigo-50/15";
+                      cardGlowEffect = "animate-match-boost";
+                    } else if (m.isCircularMatch) {
+                      cardBorderClass = "border-teal-300";
+                      cardBgClass = "bg-gradient-to-br from-white via-teal-50/5 to-teal-50/10";
+                      cardGlowEffect = "animate-match-boost";
+                    } else if (m.matchScore && m.matchScore > 50) {
+                      cardBorderClass = "border-indigo-200";
+                    }
+                  } else if (state.sortBy === "Top Rated") {
+                    if (isHighRated) {
+                      cardBorderClass = "border-amber-400";
+                      cardBgClass = "bg-gradient-to-br from-white to-amber-50/5";
+                      cardGlowEffect = "animate-glow-amber";
+                    }
+                  } else if (state.sortBy === "Newest") {
+                    if (isNewMember) {
+                      cardBorderClass = "border-emerald-300";
+                      cardBgClass = "bg-gradient-to-br from-white via-emerald-50/5 to-emerald-50/10";
+                      cardGlowEffect = "animate-new-pulse";
+                    }
+                  }
+
+                  // Default low rating check overriding designs
+                  if (isLowRated) {
+                    cardBorderClass = "border-red-300";
+                    cardBgClass = "bg-red-50/5";
+                    cardGlowEffect = "";
+                  }
+
                   const safeBio = m.bio 
                     ? (m.bio.split(' ').length > 15 
                         ? `${m.bio.split(' ').slice(0, 15).join(' ')}...` 
@@ -172,28 +246,37 @@ export default function DashboardHub({ state, setters, actions }: any) {
                     : `Passionate about sharing my knowledge in ${m.teaching ? m.teaching.split(',')[0] : 'Various Skills'} and learning ${m.needs ? m.needs.split(',')[0] : 'Eager to learn'}.`;
                   
                   return (
-                  <div key={m.id} className={`bg-white rounded-[3rem] border-2 shadow-sm hover:shadow-2xl transition-all group flex flex-col overflow-hidden ${isLowRated ? 'border-red-300 shadow-red-100/50' : m.isMutualMatch ? 'border-indigo-300 shadow-indigo-100/50' : m.isCircularMatch ? 'border-teal-300 shadow-teal-100/50' : 'border-slate-100'}`}>
+                  <div key={m.id} className={`bg-white rounded-[3rem] border-2 shadow-sm hover:shadow-2xl transition-all group flex flex-col overflow-hidden ${cardBorderClass} ${cardBgClass} ${cardGlowEffect}`}>
                     
+                    {/* Header Badges depending on criteria */}
                     {isLowRated ? (
                       <div className="w-full bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-3 text-center flex items-center justify-center gap-2 shadow-sm relative z-20">
                         <AlertTriangle size={14} strokeWidth={3} /> Low Rating Warning
                       </div>
-                    ) : m.isMutualMatch ? (
-                      <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-500 relative z-20">
+                    ) : state.sortBy === "Recommended" && m.isMutualMatch ? (
+                      <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Flame size={14} className="fill-white" /> Mutual Match
                       </div>
-                    ) : m.isCircularMatch ? (
-                      <div className="w-full bg-gradient-to-r from-teal-400 to-emerald-500 text-white py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-500 relative z-20">
+                    ) : state.sortBy === "Recommended" && m.isCircularMatch ? (
+                      <div className="w-full bg-gradient-to-r from-teal-400 to-emerald-500 text-white py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Repeat size={14} className="text-white" /> Circular Match
                       </div>
-                    ) : m.matchScore && m.matchScore > 20 && state.sortBy === "Recommended" ? (
-                      <div className="w-full bg-amber-400 text-amber-950 py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
-                        <Heart size={14} className="fill-amber-950" /> {Math.min(Math.round(m.matchScore), 99)}% Match
+                    ) : state.sortBy === "Recommended" && m.matchScore && m.matchScore > 20 ? (
+                      <div className="w-full bg-indigo-600 text-white py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Heart size={14} className="fill-white animate-pulse" /> {Math.min(Math.round(m.matchScore), 99)}% Recommended Match
+                      </div>
+                    ) : state.sortBy === "Top Rated" && isHighRated ? (
+                      <div className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Star size={14} className="fill-amber-950 text-amber-950 animate-bounce" /> Highly Rated Educator
+                      </div>
+                    ) : state.sortBy === "Newest" && isNewMember ? (
+                      <div className="w-full bg-emerald-500 text-white py-3 text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Sparkles size={14} className="fill-white" /> Fresh Joiner 🌱
                       </div>
                     ) : null}
 
                     {/* Card Body */}
-                    <div className="p-8 flex-1 flex flex-col relative">
+                    <div className="p-8 flex-1 flex flex-col relative text-left">
                       
                       <div className="absolute top-8 right-8 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100">
                         {m.category}
@@ -203,7 +286,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                         
                         <div className="flex gap-5 mb-2 pr-20">
                             <div className="relative shrink-0">
-                                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[2rem] flex items-center justify-center font-black text-xl md:text-2xl shadow-inner border-[3px] border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
+                                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[2rem] flex items-center justify-center font-black text-xl md:text-2xl shadow-inner border-[3px] border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
                                     {m.image ? <img src={m.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{m.avatar || m.name.substring(0,2)}</span>}
                                 </div>
                             </div>
@@ -228,7 +311,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                                       className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black border transition-colors ${m.reviewCount === 0 ? 'bg-slate-50 text-slate-500 border-slate-200 cursor-default' : isLowRated ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 cursor-pointer' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer'}`}
                                     >
                                         {m.reviewCount === 0 ? (
-                                          <><Sparkles size={12} className="text-slate-400" /> New Member</>
+                                          <><Sparkles size={12} className="text-emerald-500" /> New Member</>
                                         ) : (
                                           <>{isLowRated ? <AlertTriangle size={12} className="text-red-500" /> : <Star size={12} className="fill-amber-400 text-amber-400" />} {m.rating} ({m.reviewCount})</>
                                         )}
@@ -257,6 +340,17 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             </div>
                         </div>
 
+                        {/* Safety Notice Banner for Newcomers */}
+                        {isNewMember && (
+                          <div className="mt-4 mb-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3">
+                            <ShieldAlert className="text-emerald-600 shrink-0 mt-0.5" size={16} />
+                            <div>
+                              <p className="text-[9px] font-black uppercase tracking-wider text-emerald-800">Fresh Member Advisory</p>
+                              <p className="text-[11px] text-emerald-700 font-medium leading-relaxed">This member joined recently and has no ratings yet. Always conduct sessions in safe environments.</p>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Bio Quote */}
                         <div className="mt-6 mb-6 px-2 border-l-[3px] border-slate-200">
                           <p className="text-[13px] text-slate-500 italic leading-relaxed line-clamp-3 pl-3">"{safeBio}"</p>
@@ -276,7 +370,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                         {m.isCircularMatch && (
                           <div className="mt-4 mb-4 p-4 bg-teal-50/70 border border-teal-200 rounded-2xl text-left animate-in slide-in-from-top-2 duration-300">
                             <p className="text-[10px] font-black uppercase text-teal-800 tracking-wider mb-3 flex items-center gap-1.5">
-                              <Repeat size={12} className="text-teal-600 animate-spin-slow" /> 3-Way Exchange Loop Detected
+                              <Repeat size={12} className="text-teal-600" /> 3-Way Exchange Loop Detected
                             </p>
                             
                             <div className="flex items-center justify-between text-center gap-1">
@@ -300,7 +394,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
 
                               <div className="flex flex-col items-center">
                                 <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-[10px] font-black">
-                                  USR
+                                  YOU
                                 </div>
                                 <span className="text-[8px] font-black text-indigo-500 uppercase mt-1">Partner C</span>
                               </div>
@@ -318,6 +412,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                         )}
                       </div>
 
+                      {/* Expanded Ratings view card panel pagination controls */}
                       {expandedReviewId === m.id && m.reviewCount > 0 && (() => {
                         const totalReviews = m.reviews.length;
                         const fiveStars = m.reviews.filter((r: any) => r.rating === 5).length;
@@ -340,8 +435,14 @@ export default function DashboardHub({ state, setters, actions }: any) {
                         const s2 = (p2 / 100) * circ;
                         const s1 = (p1 / 100) * circ;
 
+                        // Dynamic Review Sub-Pagination
+                        const totalRevPages = Math.ceil(m.reviews.length / reviewsPerPage);
+                        const idxLastRev = reviewPage * reviewsPerPage;
+                        const idxFirstRev = idxLastRev - reviewsPerPage;
+                        const currentReviews = m.reviews.slice(idxFirstRev, idxLastRev);
+
                         return (
-                          <div className="mb-6 p-5 bg-slate-50 rounded-[2rem] border border-slate-200 animate-in slide-in-from-top-2 duration-300 shadow-inner relative z-10">
+                          <div className="mb-6 p-5 bg-slate-50 rounded-[2rem] border border-slate-200 animate-in slide-in-from-top-2 duration-300 shadow-inner relative z-10 text-left">
                             <div className="flex flex-col sm:flex-row items-center gap-6 mb-6 pb-6 border-b border-slate-200">
                               
                               <div className="relative flex items-center justify-center shrink-0">
@@ -381,9 +482,15 @@ export default function DashboardHub({ state, setters, actions }: any) {
                               </div>
                             </div>
 
-                            <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2"><MessageCircle size={12} /> Recent Feedback</h5>
-                            <div className="space-y-3">
-                              {m.reviews.slice(0, 2).map((r: any) => (
+                            <div className="flex justify-between items-center mb-3">
+                              <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><MessageCircle size={12} /> Recent Feedback</h5>
+                              {totalRevPages > 1 && (
+                                <span className="text-[9px] font-black text-slate-400">Page {reviewPage} of {totalRevPages}</span>
+                              )}
+                            </div>
+
+                            <div className="space-y-3 mb-4">
+                              {currentReviews.map((r: any) => (
                                 <div key={r.id} className="text-left bg-white p-4 rounded-[1.2rem] border border-slate-100 shadow-sm">
                                   <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-bold text-slate-800">{r.reviewer}</span>
@@ -393,6 +500,45 @@ export default function DashboardHub({ state, setters, actions }: any) {
                                 </div>
                               ))}
                             </div>
+
+                            {/* Inner Review Pagination Controls */}
+                            {totalRevPages > 1 && (
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                                <button 
+                                  type="button"
+                                  disabled={reviewPage === 1}
+                                  onClick={() => setReviewPage(prev => Math.max(prev - 1, 1))}
+                                  className="px-3 py-1 bg-white border border-slate-200 hover:border-slate-300 disabled:opacity-40 disabled:hover:border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-500 transition-all cursor-pointer"
+                                >
+                                  Back
+                                </button>
+                                <div className="flex gap-1">
+                                  {Array.from({ length: totalRevPages }, (_, i) => i + 1).map((pageNum) => (
+                                    <button
+                                      type="button"
+                                      key={pageNum}
+                                      onClick={() => setReviewPage(pageNum)}
+                                      className={`w-6 h-6 rounded text-[9px] font-black border transition-all ${
+                                        reviewPage === pageNum
+                                          ? "bg-slate-900 border-slate-900 text-white"
+                                          : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                                      }`}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  ))}
+                                </div>
+                                <button 
+                                  type="button"
+                                  disabled={reviewPage === totalRevPages}
+                                  onClick={() => setReviewPage(prev => Math.min(prev + 1, totalRevPages))}
+                                  className="px-3 py-1 bg-white border border-slate-200 hover:border-slate-300 disabled:opacity-40 disabled:hover:border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-500 transition-all cursor-pointer"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            )}
+
                           </div>
                         );
                       })()}
@@ -469,7 +615,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
         <aside className="lg:w-96 space-y-8">
             {/* Active Chats */}
             <div className="bg-white p-8 rounded-[3rem] border-2 border-indigo-50 shadow-sm relative overflow-hidden">
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex justify-between items-center mb-8 text-left">
                   <h4 className="font-black text-indigo-900 text-[12px] uppercase tracking-widest flex items-center gap-2"><MessageSquare size={16} className="text-indigo-600" /> Active Chats</h4>
                   {recentPartners.length > 0 && <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg border border-indigo-700">{recentPartners.length}</span>}
                 </div>
@@ -498,7 +644,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                                 <p className={`text-[11px] truncate ${isSelected ? 'text-indigo-100 font-medium' : isUnread ? 'text-indigo-600 font-black' : 'text-slate-500 font-medium'}`}>
                                   {lastMsg ? (lastMsg.type === 'file' ? '📁 File attachment' : (lastMsg.sender === 'me' ? `You: ${lastMsg.text}` : lastMsg.text)) : `Teaches: ${p.teaching.split(',')[0]}`}
                                 </p>
-                                {isUnread && !isSelected && <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 ml-auto shadow-sm"></div>}
+                                {isUnread && !isSelected && <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full shrink-0 ml-auto shadow-sm animate-pulse"></div>}
                               </div>
                             </div>
                           </button>
@@ -579,12 +725,10 @@ export default function DashboardHub({ state, setters, actions }: any) {
                           </div>
                           
                           {isReported ? (
-                            // Secure Lock State preventing unblocks on actively reported safety cards [19]
                             <div className="p-2 bg-red-50 text-red-500 rounded-lg border border-red-100" title="Reported users cannot be unblocked manually.">
                               <ShieldAlert size={14} />
                             </div>
                           ) : (
-                            // Clean Unblock option allowed for standard block entries [19]
                             <button type="button" onClick={() => actions.unblockUser(user.id)} className="cursor-pointer p-2 hover:bg-indigo-600 hover:text-white rounded-lg text-indigo-600 transition-all border border-indigo-100 bg-white"><Unlock size={14} /></button>
                           )}
                         </div>
@@ -601,7 +745,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
       {/* Report Modal */}
       {showReportModal && reportTarget && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl">
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
             <div className="w-16 h-16 bg-red-100 text-red-500 rounded-[1.5rem] flex items-center justify-center mb-6"><Flag size={32} /></div>
             <h2 className="text-2xl font-black text-slate-900 mb-2">Report User</h2>
             <p className="text-sm font-bold text-slate-500 mb-8 leading-relaxed">

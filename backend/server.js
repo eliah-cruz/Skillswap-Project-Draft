@@ -1,4 +1,3 @@
-// server.js
 require('dotenv').config();
 global.WebSocket = require('ws'); // Prevents Node realtime-js websocket crashes
 const express = require('express');
@@ -24,7 +23,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
 
-// Optional Google OAuth2 credentials setup for Gmail notifications [30]
+// Optional Google OAuth2 credentials setup for Gmail notifications
 let gmail = null;
 if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN) {
   try {
@@ -121,7 +120,21 @@ io.on('connection', (socket) => {
     socket.join(matchId);
   });
 
-  // Socket-driven active security report processor (Optimization 2)
+  socket.on('mark_seen', async ({ match_id, user_id }) => {
+    try {
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .match({ match_id })
+        .neq('sender_id', user_id);
+
+      io.to(match_id).emit('messages_marked_seen', { match_id, reader_id: user_id });
+    } catch (err) {
+      console.error('[Socket mark_seen] Failed to update seen indices:', err.message);
+    }
+  });
+
+  // Socket-driven active security report processor
   socket.on('report_user', async (data) => {
     const { reporter_id, reported_id, reason } = data;
     console.log(`\n[Socket Security Monitor] Security Report filed: from ${reporter_id} against ${reported_id}`);
@@ -217,76 +230,86 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data) => {
     const { match_id, sender_id, receiver_id, content, file_name, file_url, message_type } = data;
 
-    io.to(match_id).emit('receive_message', data);
+    try {
+      const { data: insertedMsg, error } = await supabase.from('messages').insert([{
+        match_id, sender_id, content, file_name, file_url, message_type
+      }]).select().single();
 
-    await supabase.from('messages').insert([{
-      match_id, sender_id, content, file_name, file_url, message_type
-    }]);
+      const broadcastData = {
+        ...data,
+        message_id: insertedMsg ? insertedMsg.message_id : Date.now().toString(),
+        timestamp: insertedMsg ? insertedMsg.timestamp : new Date().toISOString()
+      };
 
-    const receiverSocket = connectedUsers.get(receiver_id);
-    
-    console.log(`\n--- MESSAGE SENT ---`);
-    console.log(`Sender: ${sender_id}`);
-    console.log(`Receiver: ${receiver_id}`);
-    console.log(`Is Receiver Online on Socket?: ${receiverSocket ? 'YES' : 'NO (Triggering Email)'}`);
+      io.to(match_id).emit('receive_message', broadcastData);
 
-    if (!receiverSocket) {
-      const { data: receiverSettings } = await supabase
-        .from('user_settings')
-        .select('email_notifications')
-        .eq('user_id', receiver_id)
-        .maybeSingle();
+      const receiverSocket = connectedUsers.get(receiver_id);
+      
+      console.log(`\n--- MESSAGE SENT ---`);
+      console.log(`Sender: ${sender_id}`);
+      console.log(`Receiver: ${receiver_id}`);
+      console.log(`Is Receiver Online on Socket?: ${receiverSocket ? 'YES' : 'NO (Triggering Email)'}`);
 
-      const wantsEmail = receiverSettings ? receiverSettings.email_notifications : true;
-      console.log(`Does Receiver want email notifications?: ${wantsEmail ? 'YES' : 'NO'}`);
+      if (!receiverSocket) {
+        const { data: receiverSettings } = await supabase
+          .from('user_settings')
+          .select('email_notifications')
+          .eq('user_id', receiver_id)
+          .maybeSingle();
 
-      if (wantsEmail) {
-        const { data: receiver } = await supabase.from('users').select('email, username').eq('user_id', receiver_id).single();
-        const { data: sender = { username: "A peer" } } = await supabase.from('users').select('username').eq('user_id', sender_id).single();
-        if (receiver) {
-          const subject = `New Message from ${sender.username} on SkillSwap`;
-          
-          const html = `
-          <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 40px 10px; text-align: center;">
-            <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; border: 2px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); text-align: left;">
-              
-              <div style="background-color: #4f46e5; padding: 30px; text-align: center;">
-                <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.05em; font-family: sans-serif;">
-                  Skill<span style="color: #c7d2fe; font-style: italic;">Swap</span>
-                </h2>
-              </div>
+        const wantsEmail = receiverSettings ? receiverSettings.email_notifications : true;
+        console.log(`Does Receiver want email notifications?: ${wantsEmail ? 'YES' : 'NO'}`);
 
-              <div style="padding: 40px 30px;">
-                <h3 style="color: #0f172a; font-size: 20px; font-weight: 800; margin-top: 0; margin-bottom: 12px; font-family: sans-serif; text-align: center;">New Offline Message</h3>
-                <p style="color: #475569; font-size: 14px; font-weight: 600; line-height: 1.6; margin-bottom: 24px; font-family: sans-serif;">
-                  Hi ${receiver.username},<br />
-                  While you were away, <b>${sender.username}</b> sent you a message:
-                </p>
+        if (wantsEmail) {
+          const { data: receiver } = await supabase.from('users').select('email, username').eq('user_id', receiver_id).single();
+          const { data: sender = { username: "A peer" } } = await supabase.from('users').select('username').eq('user_id', sender_id).single();
+          if (receiver) {
+            const subject = `New Message from ${sender.username} on SkillSwap`;
+            
+            const html = `
+            <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 40px 10px; text-align: center;">
+              <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; border: 2px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); text-align: left;">
+                
+                <div style="background-color: #4f46e5; padding: 30px; text-align: center;">
+                  <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.05em; font-family: sans-serif;">
+                    Skill<span style="color: #c7d2fe; font-style: italic;">Swap</span>
+                  </h2>
+                </div>
 
-                <div style="background-color: #f1f5f9; border-left: 4px solid #4f46e5; padding: 16px; border-radius: 8px; margin-bottom: 30px;">
-                  <p style="color: #0f172a; font-size: 14px; font-style: italic; font-weight: 600; margin: 0; font-family: sans-serif;">
-                    "${content || 'Shared a file attachment'}"
+                <div style="padding: 40px 30px;">
+                  <h3 style="color: #0f172a; font-size: 20px; font-weight: 800; margin-top: 0; margin-bottom: 12px; font-family: sans-serif; text-align: center;">New Offline Message</h3>
+                  <p style="color: #475569; font-size: 14px; font-weight: 600; line-height: 1.6; margin-bottom: 24px; font-family: sans-serif;">
+                    Hi ${receiver.username},<br />
+                    While you were away, <b>${sender.username}</b> sent you a message:
+                  </p>
+
+                  <div style="background-color: #f1f5f9; border-left: 4px solid #4f46e5; padding: 16px; border-radius: 8px; margin-bottom: 30px;">
+                    <p style="color: #0f172a; font-size: 14px; font-style: italic; font-weight: 600; margin: 0; font-family: sans-serif;">
+                      "${content || 'Shared a file attachment'}"
+                    </p>
+                  </div>
+
+                  <div style="text-align: center;">
+                    <a href="${process.env.FRONTEND_URL}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 16px; font-size: 14px; font-weight: 900; font-family: sans-serif; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);">
+                      Reply on SkillSwap
+                    </a>
+                  </div>
+                </div>
+
+                <div style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+                  <p style="color: #94a3b8; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 0.1em; font-family: sans-serif;">
+                    © 2026 SkillSwap • Peer-to-Peer Learning
                   </p>
                 </div>
 
-                <div style="text-align: center;">
-                  <a href="${process.env.FRONTEND_URL}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 16px; font-size: 14px; font-weight: 900; font-family: sans-serif; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);">
-                    Reply on SkillSwap
-                  </a>
-                </div>
               </div>
-
-              <div style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-                <p style="color: #94a3b8; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 0.1em; font-family: sans-serif;">
-                  © 2026 SkillSwap • Peer-to-Peer Learning
-                </p>
-              </div>
-
-            </div>
-          </div>`;
-          await sendEmailNotification(receiver.email, subject, html);
+            </div>`;
+            await sendEmailNotification(receiver.email, subject, html);
+          }
         }
       }
+    } catch (err) {
+      console.error('[Socket send_message] Process failed:', err.message);
     }
     console.log(`--------------------\n`);
   });

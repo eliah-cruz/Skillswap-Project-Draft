@@ -166,7 +166,8 @@ export function useSkillSwap() {
     if (!s || !userId) return;
 
     s.on("receive_message", async (data) => {
-      if (data.sender_id === userId) return;
+      // Use the absolute freshest reference of the user's ID
+      if (data.sender_id === loadedUserIdRef.current) return; 
 
       const isChatOpenWithThisUser = activeChatPartner?.id === data.sender_id && showChat;
 
@@ -186,7 +187,7 @@ export function useSkillSwap() {
           .from('messages')
           .update({ is_read: true })
           .eq('message_id', data.message_id);
-        s.emit("mark_seen", { match_id: currentMatchId, user_id: userId });
+        s.emit("mark_seen", { match_id: currentMatchId, user_id: loadedUserIdRef.current }); // <-- Ref update
       }
 
       setMessages((prev) => [...prev, newMsg]);
@@ -198,7 +199,7 @@ export function useSkillSwap() {
     });
 
     s.on("messages_marked_seen", ({ match_id, reader_id }) => {
-      if (reader_id !== userId) {
+      if (reader_id !== loadedUserIdRef.current) { // <-- Ref update
         setMessages((prev) =>
           prev.map((m) => (m.sender === 'me' ? { ...m, isRead: true } : m))
         );
@@ -629,14 +630,14 @@ export function useSkillSwap() {
         .from('messages')
         .update({ is_read: true })
         .match({ match_id: mId, sender_id: partner.id });
-      s.emit("mark_seen", { match_id: mId, user_id: userId });
+      s.emit("mark_seen", { match_id: mId, user_id: loadedUserIdRef.current }); // <-- Ref update
     }
 
     const { data: msgHistory } = await supabase.from('messages').select('*').eq('match_id', mId).order('timestamp', { ascending: true });
     if (msgHistory) {
         setMessages(msgHistory.map(m => ({
             id: m.message_id,
-            sender: m.sender_id === userId ? "me" : "them",
+            sender: m.sender_id === loadedUserIdRef.current ? "me" : "them", // <-- Replaced state variable with ref to prevent stale closures
             text: m.content,
             timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
             isRead: m.is_read, type: m.message_type, fileUrl: m.file_url, fileName: m.file_name

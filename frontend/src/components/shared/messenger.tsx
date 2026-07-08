@@ -26,7 +26,6 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
   const livePartner = partner ? (state.allMatches.find((m: any) => m.id === partner.id) || partner) : null;
 
-  // Checks if the active user has already left a review in their partner's review list
   const alreadyReviewed = livePartner?.reviews?.some((r: any) => r.id === state.userId);
 
   useEffect(() => {
@@ -93,6 +92,34 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
     : isMaximized 
       ? "opacity-0 scale-95 pointer-events-none" 
       : "translate-x-full opacity-0 pointer-events-none";
+
+  // Strict Verification Block: Disables Standard View
+  if (!state.hasSkillsConfigured && state.showChat) {
+    return (
+      <>
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[150]" onClick={() => setters.setShowChat(false)} />
+        <div className={`fixed flex flex-col bg-white shadow-2xl transition-all duration-500 ease-in-out ${containerClasses} ${visibilityClasses} items-center justify-center p-10 text-center`}>
+          <button type="button" className="absolute top-6 right-6 cursor-pointer w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center hover:bg-red-500 transition-all" onClick={() => setters.setShowChat(false)}>
+            <X size={24} strokeWidth={3} />
+          </button>
+          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">Verification Required</h3>
+          <p className="text-slate-500 font-bold text-xs leading-relaxed mb-6 max-w-xs">
+            To unlock direct messaging and access chats, you must configure both a Teachable Skill and a Desired Skill.
+          </p>
+          <button 
+            type="button" 
+            onClick={() => { setters.setAddingSkillType('teaching'); setters.setShowDirectory(true); setters.setShowChat(false); }}
+            className="bg-indigo-600 text-white px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-md cursor-pointer"
+          >
+            Verify Skill Profile
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -339,14 +366,13 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
         </div>
       )}
 
-      {/* Review Modal with balance guards */}
+      {/* Review Modal */}
       {showReviewModal && livePartner && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
             <h2 className="text-2xl font-black text-slate-900 mb-2">Leave a Review</h2>
             <p className="text-sm font-bold text-slate-500 mb-6">How was your session with {livePartner.name}?</p>
             
-            {/* Display correct validation feedback dynamically based on selected stars */}
             {reviewRating >= 4 && state.hoursBalance <= 0 ? (
               <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-6 text-left animate-in fade-in duration-300">
                 <div className="flex items-start gap-3">
@@ -354,8 +380,8 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
                   <div>
                     <h4 className="font-black text-amber-800 text-xs uppercase tracking-wider mb-1">Insufficient Barter Hours</h4>
                     <p className="text-xs text-amber-700 font-medium leading-relaxed">
-                      Leaving a high-rated review (4★-5★) transfers **1 Barter Hour** to {livePartner.name}. You currently have **0 Hours**.
-                      You can still submit a constructive low-rating review (1★-3★) for free, or teach others first to earn hours!
+                      Leaving a positive review (4★ or 5★) transfers **1 Barter Hour** to {livePartner.name}. You currently have **0 Hours**.
+                      You can still submit a constructive feedback rating (1★-3★) for **FREE** without spending hours!
                     </p>
                   </div>
                 </div>
@@ -363,8 +389,8 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
             ) : (
               <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-xs text-indigo-700 font-bold mb-6 animate-in fade-in duration-300">
                 💡 {reviewRating < 4 
-                  ? "Constructive Low Rating Rule: No hours will be deducted from your balance for ratings below 4★." 
-                  : `High Rating Rule: Submitting a positive rating will transfer 1 Barter Hour to ${livePartner.name}.`
+                  ? "Constructive Feedback: Ratings below 4★ are always free and do not deduct hours." 
+                  : `Barter Exchange: Rating 4★ or 5★ transfers 1 Barter Hour from you to ${livePartner.name}.`
                 }
               </div>
             )}

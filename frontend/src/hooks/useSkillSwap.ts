@@ -37,6 +37,7 @@ export function useSkillSwap() {
   const [activeChatIDs, setActiveChatIDs] = useState<string[]>([]);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
   const [hoursBalance, setHoursBalance] = useState<number>(3); 
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
 
@@ -166,7 +167,6 @@ export function useSkillSwap() {
     if (!s || !userId) return;
 
     s.on("receive_message", async (data) => {
-      // Use the absolute freshest reference of the user's ID
       if (data.sender_id === loadedUserIdRef.current) return; 
 
       const isChatOpenWithThisUser = activeChatPartner?.id === data.sender_id && showChat;
@@ -187,7 +187,9 @@ export function useSkillSwap() {
           .from('messages')
           .update({ is_read: true })
           .eq('message_id', data.message_id);
-        s.emit("mark_seen", { match_id: currentMatchId, user_id: loadedUserIdRef.current }); // <-- Ref update
+        s.emit("mark_seen", { match_id: currentMatchId, user_id: loadedUserIdRef.current });
+      } else {
+        setUnreadCount(prev => prev + 1);
       }
 
       setMessages((prev) => [...prev, newMsg]);
@@ -199,7 +201,7 @@ export function useSkillSwap() {
     });
 
     s.on("messages_marked_seen", ({ match_id, reader_id }) => {
-      if (reader_id !== loadedUserIdRef.current) { // <-- Ref update
+      if (reader_id !== loadedUserIdRef.current) {
         setMessages((prev) =>
           prev.map((m) => (m.sender === 'me' ? { ...m, isRead: true } : m))
         );
@@ -342,6 +344,13 @@ export function useSkillSwap() {
       const reportedList = userReports ? userReports.map(r => r.reported_id) : [];
       setReportedUsers(reportedList);
 
+      const { data: unreadMsgs } = await supabase
+        .from('messages')
+        .select('message_id')
+        .eq('is_read', false)
+        .neq('sender_id', uid);
+      setUnreadCount(unreadMsgs ? unreadMsgs.length : 0);
+
       const { data: matches } = await supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`);
       if (matches) {
           const chatPartnerIds = matches.map(m => m.mentor_id === uid ? m.student_id : m.mentor_id);
@@ -387,7 +396,6 @@ export function useSkillSwap() {
       const dbReviews = (rawReviews || []) as any[];
       
       if (otherUsers) {
-        // Enforce comprehensive verification: other peers must have both teachable and desired skills
         const formattedMatches: Match[] = otherUsers
           .filter(u => u.teachable_skills && u.teachable_skills.length > 0 && u.desired_skills && u.desired_skills.length > 0)
           .map(u => {
@@ -622,6 +630,14 @@ export function useSkillSwap() {
     }
     
     setCurrentMatchId(mId);
+
+    // Instant Chat Feed Hydration (preview cache to eliminate perceived delay)
+    const previewLastMsg = chatHistory[partner.id]?.[0];
+    if (previewLastMsg) {
+      setMessages([previewLastMsg]);
+    } else {
+      setMessages([]);
+    }
     
     const s = getSocket();
     if (s && mId) {
@@ -629,19 +645,29 @@ export function useSkillSwap() {
       await supabase
         .from('messages')
         .update({ is_read: true })
-        .match({ match_id: mId, sender_id: partner.id });
-      s.emit("mark_seen", { match_id: mId, user_id: loadedUserIdRef.current }); // <-- Ref update
+        .match({ match_id: mId, sender_id: partner.id, is_read: false });
+      s.emit("mark_seen", { match_id: mId, user_id: loadedUserIdRef.current });
     }
 
     const { data: msgHistory } = await supabase.from('messages').select('*').eq('match_id', mId).order('timestamp', { ascending: true });
     if (msgHistory) {
         setMessages(msgHistory.map(m => ({
             id: m.message_id,
-            sender: m.sender_id === loadedUserIdRef.current ? "me" : "them", // <-- Replaced state variable with ref to prevent stale closures
+            sender: m.sender_id === loadedUserIdRef.current ? "me" : "them",
             text: m.content,
             timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
             isRead: m.is_read, type: m.message_type, fileUrl: m.file_url, fileName: m.file_name
         })));
+    }
+
+    // Recalculate global unread count
+    if (userId) {
+      const { data: unreadMsgs } = await supabase
+        .from('messages')
+        .select('message_id')
+        .eq('is_read', false)
+        .neq('sender_id', userId);
+      setUnreadCount(unreadMsgs ? unreadMsgs.length : 0);
     }
   };
 
@@ -691,10 +717,31 @@ export function useSkillSwap() {
 
   const deleteConversation = async (partnerId: string) => {
     if(!userId) return;
-    await supabase.from('matches').delete().or(`and(mentor_id.eq.${userId},student_id.eq.${partnerId}),and(mentor_id.eq.${partnerId},student_id.eq.${partnerId})`);
+    
+    // Exact SQL targeted execution (repaired logical condition check)
+    const { error } = await supabase
+      .from('matches')
+      .delete()
+      .or(`and(mentor_id.eq.${userId},student_id.eq.${partnerId}),and(mentor_id.eq.${partnerId},student_id.eq.${userId})`);
+
+    if (error) {
+      console.error("Supabase match wipe operation failed:", error.message);
+      triggerToast("Failed to delete conversation.");
+      return;
+    }
+
     setActiveChatIDs(prev => prev.filter(id => id !== partnerId));
-    setMessages([]); setActiveChatPartner(null); setShowChat(false);
-    triggerToast("Conversation deleted.");
+    setChatHistory(prev => {
+      const updated = { ...prev };
+      delete updated[partnerId];
+      return updated;
+    });
+    setMessages([]); 
+    setActiveChatPartner(null); 
+    setShowChat(false);
+    triggerToast("Conversation and history permanently deleted.");
+    
+    await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
   const blockUser = async (partnerId: string) => {
@@ -806,8 +853,6 @@ export function useSkillSwap() {
   const submitReview = async (revieweeId: string, rating: number, comment: string) => {
     if(!userId || !currentMatchId) return;
 
-    // Strict time-bank guard: High ratings (>= 4★) require at least 1 Barter Hour to review.
-    // Constructive reviews with low ratings (< 4★) are processed for free.
     if (rating >= 4 && hoursBalance <= 0) {
       triggerToast("Transaction Blocked: Writing a high-rated review requires 1 Barter Hour.");
       return;
@@ -899,10 +944,10 @@ export function useSkillSwap() {
   }, [activeChatIDs, blockedUsers, reportedUsers, allMatches]);
 
   const state = { 
-    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, isAdmin, socket: getSocket(),
+    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, unreadCount, isAdmin, socket: getSocket(),
     isVerifyingAuth, authStatusMessage, authSuccess
   };
-  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance };
+  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount };
   
   const actions = { 
     handleAuth, 

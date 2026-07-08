@@ -2,14 +2,13 @@
 import React, { useState } from 'react';
 import { LogOut, MessageSquare, Zap, Settings, UserCircle, ArrowRight, Shield } from 'lucide-react';
 
-export default function Header({ state, setters, actions, scrollTo }: any) {
+export default function Header({ state, setters, actions }: any) {
   const safeName = state.userName || "Guest";
   const firstLetter = safeName.charAt(0).toUpperCase();
   
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMessageMenu, setShowMessageMenu] = useState(false);
 
-  // Configure designated administrator email
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
   const isAdmin = state.userEmail === ADMIN_EMAIL;
 
@@ -30,7 +29,6 @@ export default function Header({ state, setters, actions, scrollTo }: any) {
             if (!state.isLoggedIn) {
               setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 150);
             } else { 
-              // Routing Fix: Directs Admin back to 'admin' home, and standard users to 'hub'
               setters.setActiveTab(state.isAdmin ? 'admin' : 'hub'); 
               setters.setShowChat(false); 
               setShowMessageMenu(false);
@@ -66,7 +64,11 @@ export default function Header({ state, setters, actions, scrollTo }: any) {
                     className={`relative cursor-pointer p-4 rounded-2xl transition-all border-2 ${showMessageMenu || state.showChat ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white border-slate-100 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
                   >
                     <MessageSquare size={22} strokeWidth={2.5} />
-                    {state.activeChatUsers?.length > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-full border-2 border-white shadow-sm">{state.activeChatUsers.length}</span>}
+                    {state.unreadCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm animate-bounce">
+                        {state.unreadCount}
+                      </span>
+                    )}
                   </button>
 
                   {showMessageMenu && (
@@ -116,7 +118,6 @@ export default function Header({ state, setters, actions, scrollTo }: any) {
                        <button type="button" onClick={(e) => { e.preventDefault(); setters.setActiveTab('profile'); setShowProfileMenu(false); }} className="cursor-pointer flex items-center gap-3 px-5 py-4 text-left text-[11px] uppercase tracking-widest font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"><UserCircle size={16} /> Profile</button>
                        <button type="button" onClick={(e) => { e.preventDefault(); setters.setActiveTab('settings'); setShowProfileMenu(false); }} className="cursor-pointer flex items-center gap-3 px-5 py-4 text-left text-[11px] uppercase tracking-widest font-black text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"><Settings size={16} /> Settings</button>
                        
-                       {/* Secure Admin Option */}
                        {state.isAdmin && (
                          <button type="button" onClick={(e) => { e.preventDefault(); setters.setActiveTab('admin'); setShowProfileMenu(false); }} className="cursor-pointer flex items-center gap-3 px-5 py-4 text-left text-[11px] uppercase tracking-widest font-black text-red-600 hover:bg-red-50 transition-colors">
                            <Shield size={16} /> Admin Console

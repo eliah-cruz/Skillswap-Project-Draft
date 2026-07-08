@@ -1,14 +1,12 @@
 "use client";
-import React, { useEffect, useRef, useState } from 'react';
-import { Search, MessageSquare, Send, Star, AlertTriangle, Info, Repeat, Flame } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, MessageSquare, Send, AlertTriangle, Info, Repeat, Flame } from 'lucide-react';
 
 export default function InboxView({ state, setters, actions }: any) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const partner = state.activeChatPartner;
-  const hasChats = state.activeChatUsers && state.activeChatUsers.length > 0;
 
-  // Real-time lookup: Queries state.allMatches to get the live, WebSocket-synced status of the partner
   const livePartner = partner ? (state.allMatches.find((m: any) => m.id === partner.id) || partner) : null;
 
   useEffect(() => {
@@ -22,7 +20,6 @@ export default function InboxView({ state, setters, actions }: any) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setters.setChatInput(e.target.value);
     
-    // Broadcast active typing indicator to Websockets
     if (actions.handleTyping) {
       actions.handleTyping(true);
       
@@ -33,6 +30,30 @@ export default function InboxView({ state, setters, actions }: any) {
       }, 1500);
     }
   };
+
+  // Verification Gate lock screen
+  if (!state.hasSkillsConfigured) {
+    return (
+      <section className="container mx-auto px-5 py-6 h-[85vh] flex items-center justify-center animate-in fade-in duration-500">
+        <div className="bg-white rounded-[3.5rem] border-4 border-dashed border-slate-200 p-12 md:p-16 text-center max-w-xl shadow-xl">
+          <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-md animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tight">Active Verification Required</h3>
+          <p className="text-slate-500 font-bold text-sm leading-relaxed mb-8">
+            To unlock direct messaging and access your inbox, you must configure at least <span className="text-indigo-600">one Teachable Skill</span> and <span className="text-emerald-600">one Desired Skill</span>.
+          </p>
+          <button 
+            type="button" 
+            onClick={() => { setters.setAddingSkillType('teaching'); setters.setShowDirectory(true); }}
+            className="bg-indigo-600 text-white px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-slate-900 transition-all cursor-pointer shadow-lg shadow-indigo-200"
+          >
+            Configure Skills & Verify
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="container mx-auto px-5 py-6 h-[85vh] flex gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -58,7 +79,6 @@ export default function InboxView({ state, setters, actions }: any) {
             const history = state.chatHistory ? state.chatHistory[user.id] : null;
             const lastMsg = history?.[history.length - 1];
             
-            // Sync status of sidebar items in real-time
             const sidebarUser = state.allMatches.find((m: any) => m.id === user.id) || user;
 
             return (

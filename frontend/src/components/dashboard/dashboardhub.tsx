@@ -14,7 +14,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
     state.blockedUsers.includes(m.id) || state.reportedUsers.includes(m.id)
   );
   
-  const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
+  const [activeReviewsMember, setActiveReviewsMember] = useState<any>(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [reportTarget, setReportTarget] = useState<any>(null);
   const [reportReason, setReportReason] = useState("Spam");
@@ -23,7 +23,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 4; 
 
-  // Secondary pagination state for expanding member reviews
+  // Reviews Modal pagination state
   const [reviewPage, setReviewPage] = useState(1);
   const reviewsPerPage = 2;
 
@@ -40,7 +40,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
 
   useEffect(() => {
     setReviewPage(1);
-  }, [expandedReviewId]);
+  }, [activeReviewsMember]);
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -201,7 +201,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                   const isLowRated = m.rating < 4.0 && m.reviewCount > 0;
                   const isHighRated = m.rating >= 4.5 && m.reviewCount > 0;
                   
-                  // Decide Dynamic Card Borders & Badges based on active Filters
                   let cardBorderClass = "border-slate-100";
                   let cardBgClass = "bg-white";
                   let cardGlowEffect = "";
@@ -232,7 +231,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                     }
                   }
 
-                  // Default low rating check overriding designs
                   if (isLowRated) {
                     cardBorderClass = "border-red-300";
                     cardBgClass = "bg-red-50/5";
@@ -248,7 +246,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                   return (
                   <div key={m.id} className={`bg-white rounded-[3rem] border-2 shadow-sm hover:shadow-2xl transition-all group flex flex-col overflow-hidden ${cardBorderClass} ${cardBgClass} ${cardGlowEffect}`}>
                     
-                    {/* Header Badges depending on criteria */}
                     {isLowRated ? (
                       <div className="w-full bg-red-500 text-white text-[10px] font-black uppercase tracking-widest py-3 text-center flex items-center justify-center gap-2 shadow-sm relative z-20">
                         <AlertTriangle size={14} strokeWidth={3} /> Low Rating Warning
@@ -302,13 +299,14 @@ export default function DashboardHub({ state, setters, actions }: any) {
 
                                 <div className="flex flex-wrap gap-x-2 gap-y-2.5">
                                     
+                                    {/* Ratings Button: Opens modal instantly */}
                                     <button 
                                       type="button"
                                       onClick={(e) => { 
                                         e.stopPropagation(); 
-                                        if(m.reviewCount > 0) setExpandedReviewId(expandedReviewId === m.id ? null : m.id); 
+                                        if (m.reviewCount > 0) setActiveReviewsMember(m); 
                                       }} 
-                                      className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black border transition-colors ${m.reviewCount === 0 ? 'bg-slate-50 text-slate-500 border-slate-200 cursor-default' : isLowRated ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 cursor-pointer' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer'}`}
+                                      className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-black border transition-all ${m.reviewCount === 0 ? 'bg-slate-50 text-slate-500 border-slate-200 cursor-default' : isLowRated ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 cursor-pointer hover:scale-105' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer hover:scale-105'}`}
                                     >
                                         {m.reviewCount === 0 ? (
                                           <><Sparkles size={12} className="text-emerald-500" /> New Member</>
@@ -340,7 +338,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             </div>
                         </div>
 
-                        {/* Safety Notice Banner for Newcomers */}
                         {isNewMember && (
                           <div className="mt-4 mb-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex items-start gap-3">
                             <ShieldAlert className="text-emerald-600 shrink-0 mt-0.5" size={16} />
@@ -351,7 +348,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                           </div>
                         )}
 
-                        {/* Bio Quote */}
                         <div className="mt-6 mb-6 px-2 border-l-[3px] border-slate-200">
                           <p className="text-[13px] text-slate-500 italic leading-relaxed line-clamp-3 pl-3">"{safeBio}"</p>
                         </div>
@@ -411,137 +407,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                           </div>
                         )}
                       </div>
-
-                      {/* Expanded Ratings view card panel pagination controls */}
-                      {expandedReviewId === m.id && m.reviewCount > 0 && (() => {
-                        const totalReviews = m.reviews.length;
-                        const fiveStars = m.reviews.filter((r: any) => r.rating === 5).length;
-                        const fourStars = m.reviews.filter((r: any) => r.rating === 4).length;
-                        const threeStars = m.reviews.filter((r: any) => r.rating === 3).length;
-                        const twoStars = m.reviews.filter((r: any) => r.rating === 2).length;
-                        const oneStar = m.reviews.filter((r: any) => r.rating === 1).length;
-
-                        const p5 = totalReviews > 0 ? (fiveStars / totalReviews) * 100 : 0;
-                        const p4 = totalReviews > 0 ? (fourStars / totalReviews) * 100 : 0;
-                        const p3 = totalReviews > 0 ? (threeStars / totalReviews) * 100 : 0;
-                        const p2 = totalReviews > 0 ? (twoStars / totalReviews) * 100 : 0;
-                        const p1 = totalReviews > 0 ? (oneStar / totalReviews) * 100 : 0;
-
-                        const r = 40;
-                        const circ = 2 * Math.PI * r;
-                        const s5 = (p5 / 100) * circ;
-                        const s4 = (p4 / 100) * circ;
-                        const s3 = (p3 / 100) * circ;
-                        const s2 = (p2 / 100) * circ;
-                        const s1 = (p1 / 100) * circ;
-
-                        // Dynamic Review Sub-Pagination
-                        const totalRevPages = Math.ceil(m.reviews.length / reviewsPerPage);
-                        const idxLastRev = reviewPage * reviewsPerPage;
-                        const idxFirstRev = idxLastRev - reviewsPerPage;
-                        const currentReviews = m.reviews.slice(idxFirstRev, idxLastRev);
-
-                        return (
-                          <div className="mb-6 p-5 bg-slate-50 rounded-[2rem] border border-slate-200 animate-in slide-in-from-top-2 duration-300 shadow-inner relative z-10 text-left">
-                            <div className="flex flex-col sm:flex-row items-center gap-6 mb-6 pb-6 border-b border-slate-200">
-                              
-                              <div className="relative flex items-center justify-center shrink-0">
-                                <svg className="w-28 h-28 transform -rotate-90">
-                                  <circle cx="56" cy="56" r={r} fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
-                                  <circle cx="56" cy="56" r={r} fill="transparent" stroke="#eab308" strokeWidth="12" 
-                                    strokeDasharray={`${s5} ${circ - s5}`} strokeDashoffset={0} />
-                                  <circle cx="56" cy="56" r={r} fill="transparent" stroke="#facc15" strokeWidth="12" 
-                                    strokeDasharray={`${s4} ${circ - s4}`} strokeDashoffset={-s5} />
-                                  <circle cx="56" cy="56" r={r} fill="transparent" stroke="#a3e635" strokeWidth="12" 
-                                    strokeDasharray={`${s3} ${circ - s3}`} strokeDashoffset={-(s5 + s4)} />
-                                  <circle cx="56" cy="56" r={r} fill="transparent" stroke="#fb923c" strokeWidth="12" 
-                                    strokeDasharray={`${s2} ${circ - s2}`} strokeDashoffset={-(s5 + s4 + s3)} />
-                                  <circle cx="56" cy="56" r={r} fill="transparent" stroke="#ef4444" strokeWidth="12" 
-                                    strokeDasharray={`${s1} ${circ - s1}`} strokeDashoffset={-(s5 + s4 + s3 + s2)} />
-                                </svg>
-                                <div className="absolute flex flex-col items-center justify-center">
-                                  <p className="text-xl font-black text-slate-900">{m.rating}</p>
-                                  <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{m.reviewCount} total</p>
-                                </div>
-                              </div>
-
-                              <div className="flex-1 space-y-1.5 w-full">
-                                {[5, 4, 3, 2, 1].map((star, idx) => {
-                                  const percent = [p5, p4, p3, p2, p1][idx];
-                                  const barColor = ["bg-yellow-500", "bg-yellow-400", "bg-lime-400", "bg-orange-400", "bg-red-500"][idx];
-                                  return (
-                                    <div key={star} className="flex items-center gap-2 text-[10px] font-black text-slate-400">
-                                      <span className="w-3 text-right">{star}★</span>
-                                      <div className="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
-                                        <div className={`h-full ${barColor} rounded-full`} style={{ width: `${percent}%` }}></div>
-                                      </div>
-                                      <span className="w-8 text-right text-[9px] font-bold">{Math.round(percent)}%</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-
-                            <div className="flex justify-between items-center mb-3">
-                              <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2"><MessageCircle size={12} /> Recent Feedback</h5>
-                              {totalRevPages > 1 && (
-                                <span className="text-[9px] font-black text-slate-400">Page {reviewPage} of {totalRevPages}</span>
-                              )}
-                            </div>
-
-                            <div className="space-y-3 mb-4">
-                              {currentReviews.map((r: any) => (
-                                <div key={r.id} className="text-left bg-white p-4 rounded-[1.2rem] border border-slate-100 shadow-sm">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-bold text-slate-800">{r.reviewer}</span>
-                                    <span className={`text-[10px] font-black flex items-center px-2 py-0.5 rounded-md border ${r.rating < 4.0 ? 'bg-red-50 text-red-500 border-red-100' : 'bg-amber-50 text-amber-500 border-amber-100'}`}><Star size={10} className={`${r.rating < 4.0 ? 'fill-red-400' : 'fill-amber-400'} mr-1`} />{r.rating}.0</span>
-                                  </div>
-                                  <p className="text-xs text-slate-500 italic leading-relaxed">"{r.comment}"</p>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Inner Review Pagination Controls */}
-                            {totalRevPages > 1 && (
-                              <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
-                                <button 
-                                  type="button"
-                                  disabled={reviewPage === 1}
-                                  onClick={() => setReviewPage(prev => Math.max(prev - 1, 1))}
-                                  className="px-3 py-1 bg-white border border-slate-200 hover:border-slate-300 disabled:opacity-40 disabled:hover:border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-500 transition-all cursor-pointer"
-                                >
-                                  Back
-                                </button>
-                                <div className="flex gap-1">
-                                  {Array.from({ length: totalRevPages }, (_, i) => i + 1).map((pageNum) => (
-                                    <button
-                                      type="button"
-                                      key={pageNum}
-                                      onClick={() => setReviewPage(pageNum)}
-                                      className={`w-6 h-6 rounded text-[9px] font-black border transition-all ${
-                                        reviewPage === pageNum
-                                          ? "bg-slate-900 border-slate-900 text-white"
-                                          : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                                      }`}
-                                    >
-                                      {pageNum}
-                                    </button>
-                                  ))}
-                                </div>
-                                <button 
-                                  type="button"
-                                  disabled={reviewPage === totalRevPages}
-                                  onClick={() => setReviewPage(prev => Math.min(prev + 1, totalRevPages))}
-                                  className="px-3 py-1 bg-white border border-slate-200 hover:border-slate-300 disabled:opacity-40 disabled:hover:border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-500 transition-all cursor-pointer"
-                                >
-                                  Next
-                                </button>
-                              </div>
-                            )}
-
-                          </div>
-                        );
-                      })()}
 
                       {/* Action Buttons */}
                       <div className="flex gap-3 mt-auto relative z-10">
@@ -663,14 +528,16 @@ export default function DashboardHub({ state, setters, actions }: any) {
                 <div className="flex justify-between items-center mb-8 border-b border-slate-800 pb-4">
                   <h4 className="font-black text-[12px] uppercase tracking-widest flex items-center gap-2"><Sparkles size={16} className="text-amber-400" /> My Skill Profile</h4>
                   
+                  {/* Explanatory hours balance box */}
                   <div className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-3 py-1.5 rounded-xl border border-amber-400/20 cursor-help">
                     <Coins size={14} className="fill-amber-400" />
                     <span className="text-[10px] font-black tracking-widest">{state.hoursBalance} HR BALANCE</span>
                     
-                    <div className="absolute right-0 top-10 w-48 bg-slate-950 text-white p-3 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[9px] font-bold leading-normal border border-slate-800">
-                      🪙 Barter Rules:<br />
-                      • Reviewing a mentor deducts 1 Hour.<br />
-                      • Being reviewed by a student awards 1 Hour.
+                    <div className="absolute right-0 top-10 w-64 bg-slate-950 text-white p-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[10px] font-bold leading-relaxed border border-slate-800">
+                      💡 How Your Time-Bank Works:<br />
+                      • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
+                      • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
+                      • <b>Constructive Reviews:</b> Reviews between 1★ and 3★ are always <b>FREE</b> and do not deduct any hours.
                     </div>
                   </div>
                 </div>
@@ -741,6 +608,160 @@ export default function DashboardHub({ state, setters, actions }: any) {
             </div>
         </aside>
       </div>
+
+      {/* Centered Member Reviews Modal (Resolves scrolling issue) */}
+      {activeReviewsMember && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3rem] w-full max-w-xl p-8 shadow-2xl relative max-h-[85vh] flex flex-col overflow-hidden text-left">
+            
+            <div className="flex justify-between items-center pb-6 border-b border-slate-100 mb-6 shrink-0">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-600 tracking-widest">Educator Rating Portfolio</span>
+                <h3 className="text-xl font-black text-slate-900 mt-1">Reviews for {activeReviewsMember.name}</h3>
+              </div>
+              <button 
+                onClick={() => { setActiveReviewsMember(null); setReviewPage(1); }} 
+                className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-red-500 hover:text-white transition-all border border-slate-100 shadow-sm cursor-pointer"
+              >
+                <X size={20} strokeWidth={3} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-6">
+              {(() => {
+                const totalReviews = activeReviewsMember.reviews.length;
+                const fiveStars = activeReviewsMember.reviews.filter((r: any) => r.rating === 5).length;
+                const fourStars = activeReviewsMember.reviews.filter((r: any) => r.rating === 4).length;
+                const threeStars = activeReviewsMember.reviews.filter((r: any) => r.rating === 3).length;
+                const twoStars = activeReviewsMember.reviews.filter((r: any) => r.rating === 2).length;
+                const oneStar = activeReviewsMember.reviews.filter((r: any) => r.rating === 1).length;
+
+                const p5 = totalReviews > 0 ? (fiveStars / totalReviews) * 100 : 0;
+                const p4 = totalReviews > 0 ? (fourStars / totalReviews) * 100 : 0;
+                const p3 = totalReviews > 0 ? (threeStars / totalReviews) * 100 : 0;
+                const p2 = totalReviews > 0 ? (twoStars / totalReviews) * 100 : 0;
+                const p1 = totalReviews > 0 ? (oneStar / totalReviews) * 100 : 0;
+
+                const r = 40;
+                const circ = 2 * Math.PI * r;
+                const s5 = (p5 / 100) * circ;
+                const s4 = (p4 / 100) * circ;
+                const s3 = (p3 / 100) * circ;
+                const s2 = (p2 / 100) * circ;
+                const s1 = (p1 / 100) * circ;
+
+                const totalRevPages = Math.ceil(activeReviewsMember.reviews.length / reviewsPerPage);
+                const idxLastRev = reviewPage * reviewsPerPage;
+                const idxFirstRev = idxLastRev - reviewsPerPage;
+                const currentReviews = activeReviewsMember.reviews.slice(idxFirstRev, idxLastRev);
+
+                return (
+                  <>
+                    <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-slate-100">
+                      <div className="relative flex items-center justify-center shrink-0">
+                        <svg className="w-28 h-28 transform -rotate-90">
+                          <circle cx="56" cy="56" r={r} fill="transparent" stroke="#f1f5f9" strokeWidth="12" />
+                          <circle cx="56" cy="56" r={r} fill="transparent" stroke="#eab308" strokeWidth="12" 
+                            strokeDasharray={`${s5} ${circ - s5}`} strokeDashoffset={0} />
+                          <circle cx="56" cy="56" r={r} fill="transparent" stroke="#facc15" strokeWidth="12" 
+                            strokeDasharray={`${s4} ${circ - s4}`} strokeDashoffset={-s5} />
+                          <circle cx="56" cy="56" r={r} fill="transparent" stroke="#a3e635" strokeWidth="12" 
+                            strokeDasharray={`${s3} ${circ - s3}`} strokeDashoffset={-(s5 + s4)} />
+                          <circle cx="56" cy="56" r={r} fill="transparent" stroke="#fb923c" strokeWidth="12" 
+                            strokeDasharray={`${s2} ${circ - s2}`} strokeDashoffset={-(s5 + s4 + s3)} />
+                          <circle cx="56" cy="56" r={r} fill="transparent" stroke="#ef4444" strokeWidth="12" 
+                            strokeDasharray={`${s1} ${circ - s1}`} strokeDashoffset={-(s5 + s4 + s3 + s2)} />
+                        </svg>
+                        <div className="absolute flex flex-col items-center justify-center">
+                          <p className="text-xl font-black text-slate-900">{activeReviewsMember.rating}</p>
+                          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{activeReviewsMember.reviewCount} total</p>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 space-y-1.5 w-full">
+                        {[5, 4, 3, 2, 1].map((star, idx) => {
+                          const percent = [p5, p4, p3, p2, p1][idx];
+                          const barColor = ["bg-yellow-500", "bg-yellow-400", "bg-lime-400", "bg-orange-400", "bg-red-500"][idx];
+                          return (
+                            <div key={star} className="flex items-center gap-2 text-[10px] font-black text-slate-400">
+                              <span className="w-3 text-right">{star}★</span>
+                              <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div className={`h-full ${barColor} rounded-full`} style={{ width: `${percent}%` }}></div>
+                              </div>
+                              <span className="w-8 text-right text-[9px] font-bold">{Math.round(percent)}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                        <MessageCircle size={12} /> Recent Feedback
+                      </h5>
+                      {totalRevPages > 1 && (
+                        <span className="text-[9px] font-black text-slate-400">Page {reviewPage} of {totalRevPages}</span>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {currentReviews.map((r: any) => (
+                        <div key={r.id} className="text-left bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-sm">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-slate-800">{r.reviewer}</span>
+                            <span className="text-[10px] font-black flex items-center px-2 py-0.5 rounded-md border bg-amber-50 text-amber-500 border-amber-100">
+                              <Star size={10} className="fill-amber-400 mr-1" />{r.rating}.0
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 italic leading-relaxed">"{r.comment}"</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {totalRevPages > 1 && (
+                      <div className="flex items-center justify-between pt-4 border-t border-slate-100 shrink-0">
+                        <button 
+                          type="button"
+                          disabled={reviewPage === 1}
+                          onClick={() => setReviewPage(prev => Math.max(prev - 1, 1))}
+                          className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 disabled:opacity-40 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-500 transition-all cursor-pointer"
+                        >
+                          Back
+                        </button>
+                        <div className="flex gap-1">
+                          {Array.from({ length: totalRevPages }, (_, i) => i + 1).map((pageNum) => (
+                            <button
+                              type="button"
+                              key={pageNum}
+                              onClick={() => setReviewPage(pageNum)}
+                              className={`w-6 h-6 rounded text-[9px] font-black border transition-all ${
+                                reviewPage === pageNum
+                                  ? "bg-slate-900 border-slate-900 text-white"
+                                  : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          ))}
+                        </div>
+                        <button 
+                          type="button"
+                          disabled={reviewPage === totalRevPages}
+                          onClick={() => setReviewPage(prev => Math.min(prev + 1, totalRevPages))}
+                          className="px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 disabled:opacity-40 rounded-lg text-[10px] font-black uppercase tracking-wider text-slate-500 transition-all cursor-pointer"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Report Modal */}
       {showReportModal && reportTarget && (

@@ -15,14 +15,15 @@ export default function SkillDirectory({ state, setters, actions }: any) {
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
       <div className="bg-white rounded-[4rem] w-full max-w-2xl overflow-hidden shadow-[0_32px_80px_-20px_rgba(0,0,0,0.5)] border-4 border-white flex flex-col max-h-[85vh] relative">
         
-        <div className="p-10 border-b-2 border-slate-50 flex justify-between items-center bg-white shrink-0 relative z-10">
+        {/* Step Header */}
+        <div className="p-10 pb-5 border-b-2 border-slate-50 flex justify-between items-center bg-white shrink-0 relative z-10">
           <div className="flex items-center gap-5">
             <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-xl ${isLearning ? 'bg-emerald-500 shadow-emerald-200' : 'bg-indigo-600 shadow-indigo-200'}`}>
               <LayoutGrid size={28} strokeWidth={2.5} />
             </div>
             <div className="text-left">
               <h3 className="font-black text-slate-900 uppercase tracking-[0.2em] text-sm">
-                {isLearning ? "What do you want to learn?" : "What can you teach?"} <span className="text-slate-400 text-xs font-extrabold">(Max 5)</span>
+                {isLearning ? "Choose desired skills" : "What can you teach?"} <span className="text-slate-400 text-xs font-extrabold">(Max 5)</span>
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <Sparkles size={14} className="text-amber-500 fill-amber-500" />
@@ -36,7 +37,24 @@ export default function SkillDirectory({ state, setters, actions }: any) {
           </button>
         </div>
 
-        <div className="overflow-y-auto pb-12 bg-white">
+        {/* Guided Navigation Tabs */}
+        <div className="flex border-b border-slate-100 bg-slate-50/50 px-10 pt-4 gap-6">
+          <button 
+            onClick={() => { setters.setAddingSkillType('teaching'); setters.setOnboardingCategory(null); }}
+            className={`pb-4 text-xs font-black uppercase tracking-wider transition-all border-b-4 ${!isLearning ? 'border-indigo-600 text-indigo-600 font-black' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+          >
+            Step 1: Teachable Skills ({state.mySkills.length}/5)
+          </button>
+          <button 
+            onClick={() => { setters.setAddingSkillType('learning'); setters.setOnboardingCategory(null); }}
+            className={`pb-4 text-xs font-black uppercase tracking-wider transition-all border-b-4 ${isLearning ? 'border-emerald-500 text-emerald-500 font-black' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+          >
+            Step 2: Desired Skills ({state.myNeeds.length}/5)
+          </button>
+        </div>
+
+        {/* Main Selection Area */}
+        <div className="overflow-y-auto pb-12 bg-white flex-1 no-scrollbar">
           <div className="px-10 pt-10">
             {!state.onboardingCategory ? (
               <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
@@ -112,6 +130,32 @@ export default function SkillDirectory({ state, setters, actions }: any) {
             )}
           </div>
         </div>
+
+        {/* Dynamic Guided Next Step Button Footer */}
+        <div className="px-10 py-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center shrink-0">
+          <p className="text-xs font-black text-slate-400 uppercase tracking-wider">
+            {isLearning ? `Step 2 Selected: ${state.myNeeds.length}/5` : `Step 1 Selected: ${state.mySkills.length}/5`}
+          </p>
+          {isLearning ? (
+            <button 
+              onClick={() => setters.setShowDirectory(false)}
+              className="bg-emerald-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center gap-2 shadow-lg shadow-emerald-100 cursor-pointer"
+            >
+              Complete & Verify <Check size={16} strokeWidth={3} />
+            </button>
+          ) : (
+            <button 
+              onClick={() => {
+                setters.setAddingSkillType('learning');
+                setters.setOnboardingCategory(null);
+              }}
+              className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-900 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 cursor-pointer"
+            >
+              Next: Desired Skills <ArrowRight size={16} strokeWidth={3} />
+            </button>
+          )}
+        </div>
+
       </div>
     </div>
   );

@@ -13,10 +13,10 @@ const teamMembers = [
     role: "Back-End Developer", 
     bio: "Focusing on system architectures, secure WebSockets, database design, and notification dispatching systems.",
     avatar: "QB", 
-    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/never-gonna.gif",
+    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/qarlo.jpg",
     color: "bg-indigo-600",
-    socials: { github: "#", linkedin: "#" },
-    tech: ["Figma" , "Supabase (PostgreSQL)", "Google API" ,"Render (PaaS)" , "Vercel" ,"Socket.io"]
+    socials: { github: "https://github.com/q1ppie", linkedin: "https://www.linkedin.com/in/qarlo-miguel-banguilan-499884287/" },
+    tech: ["Figma" , "Supabase", "Google API" ,"Render" , "Vercel" ,"Socket.io"]
   },
   { 
     id: 2,
@@ -24,29 +24,36 @@ const teamMembers = [
     role: "Front-End Developer", 
     bio: "Crafting beautiful, accessible, and high-performance interactive interfaces using modern web standards.",
     avatar: "EC", 
-    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/ec.jpg",
+    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/eliah.jpg",
     color: "bg-purple-600",
     socials: { github: "https://github.com/eliah-cruz", linkedin: "https://www.linkedin.com/in/eliah-d-cruz-520970297/" },
-    tech: ["Vercel", "Next.js", "Tailwind CSS", "Node.js", "Lucide React", "Figma"]
+    tech: ["Next.js", "React", "Tailwind CSS", "TypeScript", "Lucide React"]
   },
   { 
     id: 3,
     name: "Rafael Torres", 
-    role: "Technical Writer", 
-    bio: "Managing documentation pipelines, user requirement analyses, and core testing procedures.",
+    role: "Documentation", 
+    bio: "",
     avatar: "RT", 
-    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/never-gonna.gif",
+    image: "",
     color: "bg-emerald-500",
     socials: { github: "#", linkedin: "#" },
-    tech: ["Google Survey", "Chapter 4 & 5", "User Testing"]
+    tech: ["Agile SDLC", "Figma", "Documentation", "Testing"]
   },
 ];
 
+// --- TECH STACK ---
 const techStack = [
-  { name: "Next.js 14", icon: "⚡" },
-  { name: "Tailwind CSS", icon: "🎨" },
+  { name: "Next.js (React)", icon: "⚛️" },
+  { name: "Node.js", icon: "🟩" },
   { name: "TypeScript", icon: "📘" },
-  { name: "React", icon: "⚛️" },
+  { name: "Tailwind CSS", icon: "🎨" },
+  { name: "Supabase", icon: "🗄️" },
+  { name: "Socket.io", icon: "🔌" },
+  { name: "Vercel", icon: "▲" },
+  { name: "Render", icon: "☁️" },
+  { name: "GitHub", icon: "🐙" },
+  { name: "Figma", icon: "📐" },
 ];
 
 export default function Members() {
@@ -102,7 +109,7 @@ export default function Members() {
             Meet the <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Builders</span>.
           </h1>
           <p className="text-slate-500 text-base md:text-lg font-bold leading-relaxed max-w-2xl mx-auto">
-            A web-based peer-to-peer platform for collaborative learning and skill swapping built for Software Engineering.
+            A web-based peer-to-peer platform for collaborative learning and skill swapping built for Software Engineering 2.
           </p>
         </div>
 
@@ -170,22 +177,60 @@ export default function Members() {
           ))}
         </div>
 
-        {/* PROJECT STACK */}
+        {/* PROJECT STACK (Infinite Marquee) */}
         <div className="bg-slate-900 rounded-[3rem] p-12 text-center relative overflow-hidden">
+          {/* Subtle Background Pattern */}
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
           
           <div className="relative z-10">
             <h2 className="text-3xl font-black text-white mb-10 tracking-tight">Built with modern technology</h2>
             
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16">
-               {techStack.map((tech) => (
-                 <div key={tech.name} className="flex flex-col items-center gap-3 group">
-                    <div className="w-16 h-16 rounded-[1.8rem] bg-white/15 backdrop-blur-sm border border-white/10 flex items-center justify-center text-2xl shadow-xl group-hover:bg-indigo-600 group-hover:scale-110 transition-all duration-300">
-                      {tech.icon}
+            {/* CSS for Seamless Infinite Marquee */}
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes marquee {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50%); }
+              }
+              .animate-marquee {
+                animation: marquee 25s linear infinite;
+              }
+            `}} />
+
+            {/* Marquee Container */}
+            <div className="relative w-full overflow-hidden py-4 group">
+              
+              {/* Fade Overlays (Creates smooth entrance/exit on the sides) */}
+              <div className="absolute left-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-r from-slate-900 to-transparent z-20 pointer-events-none"></div>
+              <div className="absolute right-0 top-0 bottom-0 w-16 md:w-32 bg-gradient-to-l from-slate-900 to-transparent z-20 pointer-events-none"></div>
+
+              {/* Moving Track */}
+              <div className="flex w-max animate-marquee group-hover:[animation-play-state:paused]">
+                
+                {/* First Set of Items */}
+                <div className="flex gap-8 md:gap-16 pr-8 md:pr-16">
+                  {techStack.map((tech) => (
+                    <div key={`set1-${tech.name}`} className="flex flex-col items-center gap-3 w-24 shrink-0">
+                      <div className="w-16 h-16 rounded-[1.8rem] bg-white/15 backdrop-blur-sm border border-white/10 flex items-center justify-center text-2xl shadow-xl hover:bg-indigo-600 hover:scale-110 transition-all duration-300 cursor-default">
+                        {tech.icon}
+                      </div>
+                      <span className="text-slate-400 text-[9px] text-center font-black uppercase tracking-widest">{tech.name}</span>
                     </div>
-                    <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest group-hover:text-white transition-colors">{tech.name}</span>
-                 </div>
-               ))}
+                  ))}
+                </div>
+
+                {/* Second Set of Items (Required for seamless loop) */}
+                <div className="flex gap-8 md:gap-16 pr-8 md:pr-16">
+                  {techStack.map((tech) => (
+                    <div key={`set2-${tech.name}`} className="flex flex-col items-center gap-3 w-24 shrink-0">
+                      <div className="w-16 h-16 rounded-[1.8rem] bg-white/15 backdrop-blur-sm border border-white/10 flex items-center justify-center text-2xl shadow-xl hover:bg-indigo-600 hover:scale-110 transition-all duration-300 cursor-default">
+                        {tech.icon}
+                      </div>
+                      <span className="text-slate-400 text-[9px] text-center font-black uppercase tracking-widest">{tech.name}</span>
+                    </div>
+                  ))}
+                </div>
+
+              </div>
             </div>
           </div>
         </div>

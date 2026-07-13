@@ -86,8 +86,8 @@ Follow these simple steps to get the full project running on your computer.
 
 ### Step 1: Set up the Database
 1. Open your **Supabase** dashboard.
-2. Find the `schema.sql` and `schema.txt`file in the main folder.
-3. Copy the code inside `schema.sql` and `schema.txt` and run it in your Supabase SQL editor to create your tables.
+2. Find the `schema.sql` file in the main folder.
+3. Copy the code inside `schema.sql` and run it in your Supabase SQL editor to create your tables.
 
 ### Step 2: Set up the Backend
 1. Open your terminal.

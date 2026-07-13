@@ -15,12 +15,6 @@ This project uses a modern set of tools:
 
 ---
 
-## 🎥 Video Preview
-
-https://github.com/user-attachments/assets/519f2492-aae7-47cf-b912-d22fc894f111
-
----
-
 ## 📖 About the Project
 Traditional Online Learning Platforms suffer from a high drop-out rate because learners feel isolated. SkillSwap fixes this by turning learning into a community exchange. 
 

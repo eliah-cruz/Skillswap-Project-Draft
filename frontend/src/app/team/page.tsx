@@ -7,20 +7,9 @@ import Footer from "@/components/layout/footer";
 
 // --- TEAM DATA ---
 const teamMembers = [
-  { 
+    { 
     id: 1,
-    name: "Qarlo Banguilan", 
-    role: "Back-End Developer", 
-    bio: "Focusing on system architectures, secure WebSockets, database design, and notification dispatching systems.",
-    avatar: "QB", 
-    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/qarlo.jpg",
-    color: "bg-indigo-600",
-    socials: { github: "https://github.com/q1ppie", linkedin: "https://www.linkedin.com/in/qarlo-miguel-banguilan-499884287/" },
-    tech: ["Figma" , "Supabase", "Google API" ,"Render" , "Vercel" ,"Socket.io"]
-  },
-  { 
-    id: 2,
-    name: "Eliah Cruz", 
+    name: "Eliah D. Cruz", 
     role: "Front-End Developer", 
     bio: "Crafting beautiful, accessible, and high-performance interactive interfaces using modern web standards.",
     avatar: "EC", 
@@ -30,16 +19,16 @@ const teamMembers = [
     tech: ["Next.js", "React", "Tailwind CSS", "TypeScript", "Lucide React"]
   },
   { 
-    id: 3,
-    name: "Rafael Torres", 
-    role: "Documentation", 
-    bio: "",
-    avatar: "RT", 
-    image: "",
-    color: "bg-emerald-500",
-    socials: { github: "#", linkedin: "#" },
-    tech: ["Agile SDLC", "Figma", "Documentation", "Testing"]
-  },
+    id: 2,
+    name: "Qarlo D. Banguilan", 
+    role: "Back-End Developer", 
+    bio: "Focusing on system architectures, secure WebSockets, database design, and notification dispatching systems.",
+    avatar: "QB", 
+    image: "https://gfmweybhysibuduxfayu.supabase.co/storage/v1/object/public/team-assets/qarlo.jpg",
+    color: "bg-indigo-600",
+    socials: { github: "https://github.com/q1ppie", linkedin: "https://www.linkedin.com/in/qarlo-miguel-banguilan-499884287/" },
+    tech: ["Figma" , "Supabase", "Google API" ,"Render" , "Vercel" ,"Socket.io"]
+  }
 ];
 
 // --- TECH STACK ---
@@ -82,7 +71,7 @@ export default function Members() {
             </div>
             <span className="text-xl tracking-tight font-black text-slate-900">
               Skill<span className="text-indigo-600 italic font-black">Swap</span> 
-              <span className="text-slate-400 font-bold text-sm ml-2">/ Team Directory</span>
+              <span className="text-slate-400 font-bold text-sm ml-2">/ Team</span>
             </span>
           </Link>
 
@@ -113,8 +102,8 @@ export default function Members() {
           </p>
         </div>
 
-        {/* TEAM GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
+        {/* TEAM GRID (Adjusted to center 2 members) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-24 max-w-5xl mx-auto">
           {teamMembers.map((member, idx) => (
             <div 
               key={member.id} 

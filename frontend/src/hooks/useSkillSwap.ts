@@ -1,3 +1,5 @@
+// src/hooks/useSkillSwap.ts
+
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../lib/supabase";

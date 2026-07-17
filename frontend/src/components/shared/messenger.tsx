@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, X, MoreVertical, Flag, MessageSquare, ShieldAlert, 
   Star, Trash2, AlertTriangle, Maximize2, Minimize2, 
-  Paperclip, Check
+  Paperclip, Check, Sparkles
 } from 'lucide-react';
 
 export default function Messenger({ state, setters, chatEndRef, actions }: any) {
@@ -103,7 +103,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
             <X size={24} strokeWidth={3} />
           </button>
           <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <ShieldAlert size={28} />
           </div>
           <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">Verification Required</h3>
           <p className="text-slate-500 font-bold text-xs leading-relaxed mb-6 max-w-xs">
@@ -320,6 +320,8 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
         )}
       </div>
 
+      {/* MODALS */}
+      
       {showDeleteModal && livePartner && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
@@ -366,66 +368,81 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
         </div>
       )}
 
-      {/* Review Modal */}
+      {/* Review Modal - WITH ALWAYS VISIBLE STARS */}
       {showReviewModal && livePartner && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl text-left">
             <h2 className="text-2xl font-black text-slate-900 mb-2">Leave a Review</h2>
             <p className="text-sm font-bold text-slate-500 mb-6">How was your session with {livePartner.name}?</p>
             
-            {reviewRating >= 4 && state.hoursBalance <= 0 ? (
-              <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 mb-6 text-left animate-in fade-in duration-300">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={20} />
-                  <div>
-                    <h4 className="font-black text-amber-800 text-xs uppercase tracking-wider mb-1">Insufficient Barter Hours</h4>
-                    <p className="text-xs text-amber-700 font-medium leading-relaxed">
-                      Leaving a positive review (4★ or 5★) transfers **1 Barter Hour** to {livePartner.name}. You currently have **0 Hours**.
-                      You can still submit a constructive feedback rating (1★-3★) for **FREE** without spending hours!
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-xs text-indigo-700 font-bold mb-6 animate-in fade-in duration-300">
-                💡 {reviewRating < 4 
-                  ? "Constructive Feedback: Ratings below 4★ are always free and do not deduct hours." 
-                  : `Barter Exchange: Rating 4★ or 5★ transfers 1 Barter Hour from you to ${livePartner.name}.`
-                }
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitReview}>
-              <div className="flex gap-2 justify-center mb-8">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button 
-                    type="button" 
-                    key={star} 
-                    onClick={() => setReviewRating(star)} 
-                    className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
-                  >
-                    <Star size={40} className={star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-200"} />
-                  </button>
-                ))}
-              </div>
-              <textarea 
-                required 
-                placeholder="Write your experience here..." 
-                value={reviewComment} 
-                onChange={(e) => setReviewComment(e.target.value)} 
-                className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 min-h-[120px] mb-6" 
-              />
-              <div className="flex gap-4">
-                <button type="button" onClick={() => setShowReviewModal(false)} className="flex-1 bg-slate-100 text-slate-600 font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-slate-200 transition cursor-pointer flex items-center justify-center">Cancel</button>
+            {/* The Stars are ALWAYS visible so the user can change their mind */}
+            <div className="flex gap-2 justify-center mb-8">
+              {[1, 2, 3, 4, 5].map(star => (
                 <button 
-                  type="submit" 
-                  disabled={reviewRating >= 4 && state.hoursBalance <= 0} 
-                  className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-indigo-700 shadow-xl transition cursor-pointer flex items-center justify-center disabled:bg-slate-300 disabled:shadow-none disabled:cursor-not-allowed"
+                  type="button" 
+                  key={star} 
+                  onClick={() => setReviewRating(star)} 
+                  className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
                 >
-                  Submit Review
+                  <Star size={40} className={star <= reviewRating ? "fill-amber-400 text-amber-400" : "text-slate-200"} />
+                </button>
+              ))}
+            </div>
+
+            {reviewRating >= 4 && state.hoursBalance <= 0 ? (
+              <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-5 mb-6 text-left animate-in fade-in duration-300">
+                <h4 className="font-black text-indigo-900 text-xs uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <Sparkles size={14} className="text-indigo-600" /> Replenish Your Balance
+                </h4>
+                <p className="text-xs text-indigo-700 font-medium leading-relaxed mb-6">
+                  You have <strong>0 Barter Hours</strong>. To leave a high-rated review and pay your mentor, please add a new skill you can teach. Or tap 1-3 stars for free feedback.
+                </p>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setters.setActiveTab('hub');
+                    setters.setShowDirectory(true);
+                    setters.setAddingSkillType('teaching');
+                  }} 
+                  className="cursor-pointer w-full bg-indigo-600 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-widest hover:bg-indigo-700 shadow-xl transition"
+                >
+                  Add Teachable Skill
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setShowReviewModal(false)} 
+                  className="w-full mt-4 text-xs font-black uppercase text-indigo-400 hover:text-indigo-600 cursor-pointer"
+                >
+                  Cancel
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSubmitReview} className="animate-in fade-in duration-300">
+                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 text-xs text-indigo-700 font-bold mb-6">
+                  💡 {reviewRating < 4 
+                    ? "Constructive Feedback: Ratings below 4★ are always free and do not deduct hours." 
+                    : `Barter Exchange: Rating 4★ or 5★ transfers 1 Barter Hour from you to ${livePartner.name}.`
+                  }
+                </div>
+                <textarea 
+                  required 
+                  placeholder="Write your experience here..." 
+                  value={reviewComment} 
+                  onChange={(e) => setReviewComment(e.target.value)} 
+                  className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 min-h-[120px] mb-6" 
+                />
+                <div className="flex gap-4">
+                  <button type="button" onClick={() => setShowReviewModal(false)} className="flex-1 bg-slate-100 text-slate-600 font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-slate-200 transition cursor-pointer flex items-center justify-center">Cancel</button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl text-[11px] uppercase tracking-tight hover:bg-indigo-700 shadow-xl transition cursor-pointer flex items-center justify-center"
+                  >
+                    Submit Review
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

@@ -272,16 +272,17 @@ export default function DashboardHub({ state, setters, actions }: any) {
                       </div>
                     ) : null}
 
-                    {/* Card Body */}
+                    {/* Card Body - RESPONSIVE FIX APPLIED HERE */}
                     <div className="p-6 md:p-8 flex-1 flex flex-col relative text-left">
                       
-                      <div className="absolute top-6 right-6 md:top-8 md:right-8 bg-indigo-50 text-indigo-700 px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                      {/* Category Badge - Hidden on mobile, absolute on Desktop */}
+                      <div className="hidden sm:block absolute top-8 right-8 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm z-20">
                         {m.category}
                       </div>
 
                       <div className="relative z-10 flex-1">
                         
-                        <div className="flex gap-4 md:gap-5 mb-2 pr-24 md:pr-32">
+                        <div className="flex gap-4 md:gap-5 mb-2 sm:pr-24">
                             <div className="relative shrink-0">
                                 <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[2rem] flex items-center justify-center font-black text-xl md:text-2xl shadow-inner border-[3px] border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
                                     {m.image ? <img src={m.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{m.avatar || m.name.substring(0,2)}</span>}
@@ -290,10 +291,16 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             
                             <div className="min-w-0 flex-1 pt-1 text-left">
                                 <h4 className="text-lg md:text-xl font-black text-slate-900 truncate flex items-center gap-2 mb-1">
-                                    {m.name} {m.isVerified && <UserCheck size={18} className="text-indigo-500" />}
+                                    {m.name} {m.isVerified && <UserCheck size={18} className="text-indigo-500 shrink-0" />}
                                 </h4>
+                                
+                                {/* Category Badge - Mobile ONLY (appears below the name instead of floating) */}
+                                <div className="sm:hidden inline-block bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm mb-1.5">
+                                  {m.category}
+                                </div>
+
                                 <div className="flex items-center gap-2 mb-4">
-                                    <span className={`w-2.5 h-2.5 rounded-full shadow-sm border border-white ${m.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                                    <span className={`w-2.5 h-2.5 rounded-full shadow-sm border border-white shrink-0 ${m.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
                                     <p className="text-xs font-bold text-slate-500 truncate">{m.status} • {m.title}</p>
                                 </div>
 

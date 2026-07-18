@@ -1,3 +1,5 @@
+// src/components/shared/messenger.tsx
+
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { 
@@ -83,9 +85,10 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
     }
   };
 
+  // Z-INDEX FIX: Upgraded to z-[1010] so it sits above the z-[999] header
   const containerClasses = isMaximized
-    ? "fixed inset-4 md:inset-10 z-[200] max-w-5xl mx-auto rounded-[2rem] md:rounded-[3rem] border-2 border-slate-100"
-    : "fixed bottom-0 right-0 md:right-4 z-[200] w-full md:w-[440px] h-[85vh] md:h-[750px] rounded-t-[2rem] md:rounded-t-[3rem] border-t-4 border-indigo-600 shadow-2xl";
+    ? "fixed inset-4 md:inset-10 z-[1010] max-w-5xl mx-auto rounded-[2rem] md:rounded-[3rem] border-2 border-slate-100"
+    : "fixed bottom-0 right-0 md:right-4 z-[1010] w-full md:w-[440px] h-[85vh] md:h-[750px] rounded-t-[2rem] md:rounded-t-[3rem] border-t-4 border-indigo-600 shadow-2xl";
 
   const visibilityClasses = state.showChat
     ? "translate-x-0 opacity-100 scale-100 pointer-events-auto"
@@ -97,7 +100,8 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
   if (!state.hasSkillsConfigured && state.showChat) {
     return (
       <>
-        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[150]" onClick={() => setters.setShowChat(false)} />
+        {/* Z-INDEX FIX: Upgraded overlay to z-[1000] */}
+        <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[1000]" onClick={() => setters.setShowChat(false)} />
         <div className={`fixed flex flex-col bg-white shadow-2xl transition-all duration-500 ease-in-out ${containerClasses} ${visibilityClasses} items-center justify-center p-6 md:p-10 text-center`}>
           <button type="button" className="absolute top-4 right-4 md:top-6 md:right-6 cursor-pointer w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-slate-900 text-white flex items-center justify-center hover:bg-red-500 transition-all" onClick={() => setters.setShowChat(false)}>
             <X className="w-5 h-5 md:w-6 md:h-6" strokeWidth={3} />
@@ -123,8 +127,9 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
   return (
     <>
+      {/* Z-INDEX FIX: Upgraded overlay to z-[1000] */}
       <div 
-        className={`fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[150] transition-all duration-500 ${
+        className={`fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[1000] transition-all duration-500 ${
           state.showChat ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => {
@@ -322,8 +327,9 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
       {/* MODALS */}
       
+      {/* Z-INDEX FIX: Upgraded Modals to z-[1050] to overlay the z-[1010] chat window safely */}
       {showDeleteModal && livePartner && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl text-left">
             <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-500 rounded-xl md:rounded-[1.5rem] flex items-center justify-center mb-4 md:mb-6">
               <Trash2 size={24} className="md:w-8 md:h-8" />
@@ -342,7 +348,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
       {/* Report Modal - WITH ADMIN ALERT BANNER */}
       {showReportModal && livePartner && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl text-left">
             <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-500 rounded-xl md:rounded-[1.5rem] flex items-center justify-center mb-4 md:mb-6">
               <Flag size={24} className="md:w-8 md:h-8" />
@@ -382,7 +388,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
       {/* Review Modal - WITH ALWAYS VISIBLE STARS */}
       {showReviewModal && livePartner && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl text-left max-h-[90vh] overflow-y-auto no-scrollbar">
             <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-1.5 md:mb-2">Leave a Review</h2>
             <p className="text-xs md:text-sm font-bold text-slate-500 mb-4 md:mb-6">How was your session with {livePartner.name}?</p>

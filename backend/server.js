@@ -86,7 +86,7 @@ ${htmlContent}
         userId: 'me',
         requestBody: { raw: encodedMessage },
       });
-      console.log('[Gmail API] Real email delivered successfully.');
+      console.log(`[Gmail API] Real email delivered successfully to ${to}.`);
     } catch (err) {
       console.error('[Gmail API] Delivery failed. Reason:', err.message);
     }
@@ -134,83 +134,64 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Socket-driven active security report processor
+  // Socket-driven active security report processor (FIXED: Always emails admin)
   socket.on('report_user', async (data) => {
     const { reporter_id, reported_id, reason } = data;
     console.log(`\n[Socket Security Monitor] Security Report filed: from ${reporter_id} against ${reported_id}`);
 
     try {
-      const { data: adminUser } = await supabase
-        .from('users')
-        .select('user_id')
-        .ilike('email', ADMIN_EMAIL)
-        .maybeSingle();
+      // Fetch the usernames for the email report
+      const { data: reporter } = await supabase.from('users').select('username').eq('user_id', reporter_id).maybeSingle();
+      const { data: reported } = await supabase.from('users').select('username').eq('user_id', reported_id).maybeSingle();
 
-      if (adminUser) {
-        const isAdminOnline = connectedUsers.has(adminUser.user_id);
-        console.log(`Is Administrator Online?: ${isAdminOnline ? 'YES (Skipping Email)' : 'NO (Triggering Offline Email)'}`);
+      const reporterName = reporter ? reporter.username : "Anonymous Reporter";
+      const reportedName = reported ? reported.username : "Unknown Subject";
 
-        if (!isAdminOnline) {
-          const { data: adminSettings } = await supabase
-            .from('user_settings')
-            .select('email_notifications')
-            .eq('user_id', adminUser.user_id)
-            .maybeSingle();
+      // ALWAYS construct and send the email to the Admin immediately
+      const subject = `[SECURITY ALERT] New User Report Filed on SkillSwap`;
+      const html = `
+      <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 40px 10px; text-align: center;">
+        <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; border: 2px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); text-align: left;">
+          
+          <div style="background-color: #ef4444; padding: 30px; text-align: center;">
+            <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.05em; font-family: sans-serif;">
+              SkillSwap Safety
+            </h2>
+          </div>
 
-          const wantsEmail = adminSettings ? adminSettings.email_notifications : true;
-          console.log(`Does Administrator accept email reports?: ${wantsEmail ? 'YES' : 'NO'}`);
+          <div style="padding: 40px 30px;">
+            <h3 style="color: #0f172a; font-size: 20px; font-weight: 800; margin-top: 0; margin-bottom: 12px; font-family: sans-serif; text-align: center;">Security Alert Dispatched</h3>
+            <p style="color: #475569; font-size: 14px; font-weight: 600; line-height: 1.6; margin-bottom: 24px; font-family: sans-serif;">
+              Hello Admin,<br />
+              An active safety report has been filed and requires administrative attention:
+            </p>
 
-          if (wantsEmail) {
-            const { data: reporter } = await supabase.from('users').select('username').eq('user_id', reporter_id).maybeSingle();
-            const { data: reported } = await supabase.from('users').select('username').eq('user_id', reported_id).maybeSingle();
+            <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
+              <p style="color: #475569; font-size: 13px; margin: 0 0 8px 0; font-family: sans-serif;"><b>Reporter:</b> ${reporterName} (${reporter_id})</p>
+              <p style="color: #475569; font-size: 13px; margin: 0 0 8px 0; font-family: sans-serif;"><b>Reported User:</b> <span style="color: #ef4444; font-weight: bold;">${reportedName}</span> (${reported_id})</p>
+              <p style="color: #475569; font-size: 13px; margin: 0; font-family: sans-serif;"><b>Reason:</b> <span style="background-color: #fee2e2; color: #ef4444; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${reason}</span></p>
+            </div>
 
-            const reporterName = reporter ? reporter.username : "Anonymous Reporter";
-            const reportedName = reported ? reported.username : "Unknown Subject";
+            <div style="text-align: center;">
+              <a href="${process.env.FRONTEND_URL}" style="display: inline-block; background-color: #ef4444; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 16px; font-size: 14px; font-weight: 900; font-family: sans-serif; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);">
+                Access Moderation Console
+              </a>
+            </div>
+          </div>
 
-            const subject = `[SECURITY ALERT] New User Report Filed on SkillSwap`;
-            const html = `
-            <div style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 40px 10px; text-align: center;">
-              <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 24px; border: 2px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); text-align: left;">
-                
-                <div style="background-color: #ef4444; padding: 30px; text-align: center;">
-                  <h2 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.05em; font-family: sans-serif;">
-                    SkillSwap Safety
-                  </h2>
-                </div>
+          <div style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
+            <p style="color: #94a3b8; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 0.1em; font-family: sans-serif;">
+              © 2026 SkillSwap • Safety & Moderation Module
+            </p>
+          </div>
 
-                <div style="padding: 40px 30px;">
-                  <h3 style="color: #0f172a; font-size: 20px; font-weight: 800; margin-top: 0; margin-bottom: 12px; font-family: sans-serif; text-align: center;">Security Alert Dispatched</h3>
-                  <p style="color: #475569; font-size: 14px; font-weight: 600; line-height: 1.6; margin-bottom: 24px; font-family: sans-serif;">
-                    Hello Admin,<br />
-                    An active safety report has been filed and requires administrative attention:
-                  </p>
+        </div>
+      </div>`;
 
-                  <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 30px;">
-                    <p style="color: #475569; font-size: 13px; margin: 0 0 8px 0; font-family: sans-serif;"><b>Reporter:</b> ${reporterName} (${reporter_id})</p>
-                    <p style="color: #475569; font-size: 13px; margin: 0 0 8px 0; font-family: sans-serif;"><b>Reported User:</b> <span style="color: #ef4444; font-weight: bold;">${reportedName}</span> (${reported_id})</p>
-                    <p style="color: #475569; font-size: 13px; margin: 0; font-family: sans-serif;"><b>Reason:</b> <span style="background-color: #fee2e2; color: #ef4444; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${reason}</span></p>
-                  </div>
+      // Dispatch directly to the configured ADMIN_EMAIL variable unconditionally
+      await sendEmailNotification(ADMIN_EMAIL, subject, html);
+      console.log(`[Socket Security Monitor] Admin email dispatch triggered for ${ADMIN_EMAIL}`);
 
-                  <div style="text-align: center;">
-                    <a href="${process.env.FRONTEND_URL}" style="display: inline-block; background-color: #ef4444; color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 16px; font-size: 14px; font-weight: 900; font-family: sans-serif; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);">
-                      Access Moderation Console
-                    </a>
-                  </div>
-                </div>
-
-                <div style="background-color: #f8fafc; padding: 20px; border-top: 1px solid #f1f5f9; text-align: center;">
-                  <p style="color: #94a3b8; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0; letter-spacing: 0.1em; font-family: sans-serif;">
-                    © 2026 SkillSwap • Safety & Moderation Module
-                  </p>
-                </div>
-
-              </div>
-            </div>`;
-
-            await sendEmailNotification(ADMIN_EMAIL, subject, html);
-          }
-        }
-      }
     } catch (err) {
       console.error('[Socket Security Monitor] Failed to process report dispatch:', err.message);
     }

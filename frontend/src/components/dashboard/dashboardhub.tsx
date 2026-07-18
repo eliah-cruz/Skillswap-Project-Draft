@@ -386,10 +386,10 @@ export default function DashboardHub({ state, setters, actions }: any) {
                               <ArrowRight size={12} className="text-teal-400" />
 
                               <div className="flex flex-col items-center">
-                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-[9px] md:text-[10px] font-black">
-                                  YOU
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-sm font-black">
+                                  ?
                                 </div>
-                                <span className="text-[7px] md:text-[8px] font-black text-indigo-500 uppercase mt-1">Partner C</span>
+                                <span className="text-[7px] md:text-[8px] font-black text-indigo-500 uppercase mt-1">Peer C</span>
                               </div>
 
                               <ArrowRight size={12} className="text-teal-400" />

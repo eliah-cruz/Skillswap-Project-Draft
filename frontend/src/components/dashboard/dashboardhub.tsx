@@ -1,12 +1,10 @@
-// src/components/dashboard/dashboardhub.tsx
-
 "use client";
 import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, Star, BookOpen, Search, Globe, Code, Palette, 
   Languages, TrendingUp, Sparkles, ShieldAlert, Unlock, ArrowRight, 
   UserCheck, X, Filter, Heart, MessageCircle, Flame, AlertTriangle, 
-  MapPin, Flag, Repeat, GraduationCap, Coins, Briefcase, Utensils, Zap
+  MapPin, Flag, Repeat, GraduationCap, Coins, Briefcase, Utensils, Zap, Lock
 } from 'lucide-react';
 
 export default function DashboardHub({ state, setters, actions }: any) {
@@ -21,11 +19,9 @@ export default function DashboardHub({ state, setters, actions }: any) {
   const [reportTarget, setReportTarget] = useState<any>(null);
   const [reportReason, setReportReason] = useState("Spam");
 
-  // Local Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const cardsPerPage = 4; 
 
-  // Reviews Modal pagination state
   const [reviewPage, setReviewPage] = useState(1);
   const reviewsPerPage = 2;
 
@@ -353,7 +349,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                           <p className="text-xs md:text-[13px] text-slate-500 italic leading-relaxed line-clamp-3 pl-2.5 md:pl-3">"{safeBio}"</p>
                         </div>
 
-                        {/* RESPONSIVE LAYOUT FIX: Stack on mobile, side-by-side on desktop */}
                         <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-4">
                             <div className={`flex-1 p-3 md:p-4 rounded-[1.2rem] md:rounded-[1.5rem] border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
                                 <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5 relative z-10 ${isLowRated ? 'text-red-600' : 'text-indigo-600'}`}><BookOpen size={12} /> Will Teach</p>
@@ -587,19 +582,18 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-200 overflow-hidden grayscale opacity-50 flex items-center justify-center font-black text-slate-400 text-xs md:text-sm">{user.image ? <img src={user.image} className="w-full h-full object-cover" alt="" /> : <span>{user.name.substring(0,1)}</span>}</div>
                             <div>
                               <p className="text-[10px] md:text-[11px] font-black text-slate-600">{user.name}</p>
-                              {isReported && (
+                              {isReported ? (
                                 <span className="text-[7px] md:text-[8px] text-red-500 font-extrabold uppercase tracking-widest block mt-0.5">Reported (Pending)</span>
+                              ) : (
+                                <span className="text-[7px] md:text-[8px] text-slate-400 font-extrabold uppercase tracking-widest block mt-0.5">Blocked by you</span>
                               )}
                             </div>
                           </div>
                           
-                          {isReported ? (
-                            <div className="p-1.5 md:p-2 bg-red-50 text-red-500 rounded-md md:rounded-lg border border-red-100" title="Reported users cannot be unblocked manually.">
-                              <ShieldAlert size={12} className="md:w-3.5 md:h-3.5" />
-                            </div>
-                          ) : (
-                            <button type="button" onClick={() => actions.unblockUser(user.id)} className="cursor-pointer p-1.5 md:p-2 hover:bg-indigo-600 hover:text-white rounded-md md:rounded-lg text-indigo-600 transition-all border border-indigo-100 bg-white"><Unlock size={12} className="md:w-3.5 md:h-3.5" /></button>
-                          )}
+                          {/* Static Lock Icon - Users CANNOT unblock manually */}
+                          <div className="p-1.5 md:p-2 bg-slate-100 text-slate-400 rounded-md md:rounded-lg border border-slate-200" title="Locked: Only Admins can reverse this action">
+                            <Lock size={12} className="md:w-3.5 md:h-3.5" />
+                          </div>
                         </div>
                       );
                     })
@@ -769,11 +763,24 @@ export default function DashboardHub({ state, setters, actions }: any) {
       {showReportModal && reportTarget && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl text-left">
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-500 rounded-xl md:rounded-[1.5rem] flex items-center justify-center mb-4 md:mb-6"><Flag size={24} className="md:w-8 md:h-8" /></div>
+            <div className="w-12 h-12 md:w-16 md:h-16 bg-red-100 text-red-500 rounded-xl md:rounded-[1.5rem] flex items-center justify-center mb-4 md:mb-6">
+              <Flag size={24} className="md:w-8 md:h-8" />
+            </div>
             <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-1.5 md:mb-2">Report User</h2>
-            <p className="text-xs md:text-sm font-bold text-slate-500 mb-6 md:mb-8 leading-relaxed">
-              Are you sure you want to block and report <span className="text-slate-800">{reportTarget.name}</span>? They will be removed from your dashboard.
+            
+            <p className="text-xs md:text-sm font-bold text-slate-500 mb-4 leading-relaxed">
+              Are you sure you want to block and report <span className="text-slate-800">{reportTarget.name}</span>? They will be removed from your dashboard and will not be notified.
             </p>
+
+            {/* Admin Alert Warning Banner */}
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl md:rounded-2xl p-3 md:p-4 mb-6 md:mb-8 flex items-start gap-2.5 md:gap-3">
+              <ShieldAlert className="text-indigo-600 w-4 h-4 md:w-5 md:h-5 shrink-0 mt-0.5" />
+              <p className="text-[10px] md:text-xs text-indigo-800 font-medium leading-relaxed">
+                <strong className="font-black uppercase tracking-widest text-indigo-900 block mb-0.5">Moderation Alert</strong>
+                Submitting this report will instantly notify the System Administrator. False reports may result in account suspension.
+              </p>
+            </div>
+
             <form onSubmit={handleConfirmReport}>
               <label className="block text-[9px] md:text-[10px] font-black uppercase text-slate-400 mb-2 md:mb-3 tracking-widest">Select Reason</label>
               <select value={reportReason} onChange={(e) => setReportReason(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl md:rounded-2xl p-3 md:p-4 text-xs md:text-sm font-bold text-slate-800 outline-none focus:border-red-500 mb-6 md:mb-8 cursor-pointer">

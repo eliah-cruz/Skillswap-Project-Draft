@@ -1,6 +1,4 @@
--- =================================================================================
--- 1. CLEANUP PRE-EXISTING OBJECTS WITH CASCADE
--- =================================================================================
+--1. CLEANUP PRE-EXISTING OBJECTS WITH CASCADE
 DROP TABLE IF EXISTS user_settings CASCADE;
 DROP TABLE IF EXISTS reports CASCADE;
 DROP TABLE IF EXISTS blocks CASCADE;
@@ -16,10 +14,7 @@ DROP TABLE IF EXISTS skill_categories CASCADE;
 -- INITIALIZE CORE CONFIGURATIONS
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- =================================================================================
 -- 2. CREATE MASTER TABLES
--- =================================================================================
-
 CREATE TABLE skill_categories (
   category_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   category_name TEXT NOT NULL UNIQUE
@@ -32,7 +27,7 @@ CREATE TABLE skills (
 ); 
 
 CREATE TABLE users ( 
-  user_id UUID PRIMARY KEY, -- Syncs directly with auth.uid()
+  user_id UUID PRIMARY KEY,
   username TEXT NOT NULL, 
   email TEXT NOT NULL UNIQUE, 
   title TEXT DEFAULT 'SkillSwapper', 
@@ -126,9 +121,7 @@ CREATE TABLE user_settings (
   profile_visibility TEXT NOT NULL DEFAULT 'Public' CHECK (profile_visibility IN ('Public', 'Matches Only', 'Hidden'))
 );
 
--- =================================================================================
 -- 3. INDEX ENGINE OPTIMIZATIONS
--- =================================================================================
 CREATE INDEX idx_teachable_skills_user ON teachable_skills(user_id);
 CREATE INDEX idx_teachable_skills_skill ON teachable_skills(skill_id);
 CREATE INDEX idx_desired_skills_user ON desired_skills(user_id);
@@ -137,10 +130,8 @@ CREATE INDEX idx_messages_match ON messages(match_id, timestamp);
 CREATE INDEX idx_reviews_reviewee ON reviews(reviewee_id);
 CREATE INDEX idx_blocks_blocker ON blocks(blocker_id);
 
--- =================================================================================
--- 4. DATABASE AUTOMATION TRIGGERS (With SECURITY DEFINER)
--- =================================================================================
 
+-- 4. DATABASE AUTOMATION TRIGGERS (With SECURITY DEFINER)
 -- Dynamic Rating & Warning Calculator Trigger
 CREATE OR REPLACE FUNCTION update_user_average_rating()
 RETURNS TRIGGER AS $$
@@ -225,11 +216,7 @@ CREATE TRIGGER trg_barter_transaction
 AFTER INSERT ON reviews
 FOR EACH ROW EXECUTE FUNCTION process_barter_transaction();
 
-
--- =================================================================================
 -- 5. ROW LEVEL SECURITY (RLS) POLICIES
--- =================================================================================
-
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE teachable_skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE desired_skills ENABLE ROW LEVEL SECURITY;
@@ -309,10 +296,7 @@ CREATE POLICY "Settings selectable by owner" ON user_settings FOR SELECT USING (
 CREATE POLICY "Settings insertable by owner" ON user_settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Settings updatable by owner" ON user_settings FOR UPDATE USING (auth.uid() = user_id);
 
--- =================================================================================
 -- 6. CORE SEED PIPELINE DATA (CATEGORIES & SKILLS)
--- =================================================================================
-
 -- 1. Insert Categories
 INSERT INTO skill_categories (category_name) VALUES 
 ('Development'), ('Design'), ('Languages'), ('Marketing'), ('Business'), ('Culinary'), ('Life Skills')
@@ -388,9 +372,7 @@ INSERT INTO skills (skill_name, category_id) VALUES
 ('Social Media', (SELECT category_id FROM skill_categories WHERE category_name = 'Marketing'))
 ON CONFLICT (skill_name) DO NOTHING;
 
--- =================================================================================
 -- 7. ENABLE REALTIME REPLICATION FOR INSTANT SWAPPING SYNCHRONIZATION
--- =================================================================================
 DROP PUBLICATION IF EXISTS supabase_realtime;
 CREATE PUBLICATION supabase_realtime;
 

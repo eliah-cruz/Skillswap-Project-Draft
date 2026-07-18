@@ -273,15 +273,15 @@ export default function DashboardHub({ state, setters, actions }: any) {
                     ) : null}
 
                     {/* Card Body */}
-                    <div className="p-8 flex-1 flex flex-col relative text-left">
+                    <div className="p-6 md:p-8 flex-1 flex flex-col relative text-left">
                       
-                      <div className="absolute top-8 right-8 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                      <div className="absolute top-6 right-6 md:top-8 md:right-8 bg-indigo-50 text-indigo-700 px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest border border-indigo-100">
                         {m.category}
                       </div>
 
                       <div className="relative z-10 flex-1">
                         
-                        <div className="flex gap-5 mb-2 pr-20">
+                        <div className="flex gap-4 md:gap-5 mb-2 pr-24 md:pr-32">
                             <div className="relative shrink-0">
                                 <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[2rem] flex items-center justify-center font-black text-xl md:text-2xl shadow-inner border-[3px] border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
                                     {m.image ? <img src={m.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{m.avatar || m.name.substring(0,2)}</span>}

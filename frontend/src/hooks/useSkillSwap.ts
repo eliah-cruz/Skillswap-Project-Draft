@@ -874,7 +874,7 @@ export function useSkillSwap() {
 
   const filteredMatches = useMemo(() => {
     let scoredResults = allMatches
-      .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
+      .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id) && m.rating >= 4.0)
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
         if (isSearching) return true;

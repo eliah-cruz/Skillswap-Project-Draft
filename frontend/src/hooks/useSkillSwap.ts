@@ -1,3 +1,5 @@
+// src/hooks/useSkillSwap.ts
+
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../lib/supabase";
@@ -38,7 +40,7 @@ export function useSkillSwap() {
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
   const [hoursBalance, setHoursBalance] = useState<number>(3); 
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({}); 
   const [myRating, setMyRating] = useState<number>(5.0);
   const [myReviewCount, setMyReviewCount] = useState<number>(0);
 
@@ -169,6 +171,28 @@ export function useSkillSwap() {
     const s = getSocket();
     if (!s || !userId) return;
 
+    // Fix: Re-sync unread counts when the mobile phone wakes up from sleep and reconnects
+    s.on("connect", async () => {
+      if (userId) {
+        const { data: unreadMsgs } = await supabase
+          .from('messages')
+          .select('message_id, sender_id')
+          .eq('is_read', false)
+          .neq('sender_id', userId);
+          
+        let totalUnread = 0;
+        const counts: Record<string, number> = {};
+        if (unreadMsgs) {
+          totalUnread = unreadMsgs.length;
+          unreadMsgs.forEach(msg => {
+            counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+          });
+        }
+        setUnreadCount(totalUnread);
+        setUnreadCounts(counts);
+      }
+    });
+
     s.on("receive_message", async (data) => {
       if (data.sender_id === loadedUserIdRef.current) return; 
 
@@ -205,6 +229,14 @@ export function useSkillSwap() {
         ...prev,
         [data.sender_id]: [newMsg]
       }));
+
+      // Fix: Instantly add brand new people to the chat menu
+      setActiveChatIDs(prev => {
+        if (!prev.includes(data.sender_id)) {
+          return [...prev, data.sender_id];
+        }
+        return prev;
+      });
     });
 
     s.on("messages_marked_seen", ({ match_id, reader_id }) => {
@@ -222,6 +254,7 @@ export function useSkillSwap() {
     });
 
     return () => {
+      s.off("connect");
       s.off("receive_message");
       s.off("messages_marked_seen");
       s.off("partner_typing");

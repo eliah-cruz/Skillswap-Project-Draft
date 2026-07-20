@@ -529,16 +529,26 @@ export default function DashboardHub({ state, setters, actions }: any) {
                 <div className="flex justify-between items-center mb-6 md:mb-8 border-b border-slate-800 pb-4">
                   <h4 className="font-black text-[11px] md:text-[12px] uppercase tracking-widest flex items-center gap-1.5 md:gap-2"><Sparkles size={14} className="text-amber-400 md:w-4 md:h-4" /> My Skill Profile</h4>
                   
-                  {/* Explanatory hours balance box */}
-                  <div className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-amber-400/20 cursor-help">
-                    <Coins size={12} className="fill-amber-400 md:w-3.5 md:h-3.5" />
-                    <span className="text-[9px] md:text-[10px] font-black tracking-widest">{state.hoursBalance} HR</span>
-                    
-                    <div className="absolute right-0 top-8 md:top-10 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
-                      💡 How Your Time-Bank Works:<br />
-                      • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
-                      • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
-                      • <b>Constructive Reviews:</b> Reviews between 1★ and 3★ are always <b>FREE</b> and do not deduct any hours.
+                  <div className="flex items-center gap-2">
+                    {/* My Own Star Rating Badge */}
+                    <div className="flex items-center gap-1 bg-slate-800 text-amber-400 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-slate-700 shadow-sm cursor-default">
+                      <Star size={12} className="fill-amber-400 md:w-3.5 md:h-3.5" />
+                      <span className="text-[9px] md:text-[10px] font-black tracking-widest">
+                        {state.myReviewCount === 0 ? "NEW" : state.myRating.toFixed(1)}
+                      </span>
+                    </div>
+
+                    {/* Explanatory hours balance box */}
+                    <div className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-amber-400/20 cursor-help">
+                      <Coins size={12} className="fill-amber-400 md:w-3.5 md:h-3.5" />
+                      <span className="text-[9px] md:text-[10px] font-black tracking-widest">{state.hoursBalance} HR</span>
+                      
+                      <div className="absolute right-0 top-8 md:top-10 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
+                        💡 How Your Time-Bank Works:<br />
+                        • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
+                        • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
+                        • <b>Constructive Reviews:</b> Reviews between 1★ and 3★ are always <b>FREE</b> and do not deduct any hours.
+                      </div>
                     </div>
                   </div>
                 </div>

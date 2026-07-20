@@ -38,7 +38,9 @@ export function useSkillSwap() {
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
   const [hoursBalance, setHoursBalance] = useState<number>(3); 
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({}); // NEW: Tracks unread per user
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [myRating, setMyRating] = useState<number>(5.0);
+  const [myReviewCount, setMyReviewCount] = useState<number>(0);
 
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
 
@@ -240,6 +242,8 @@ export function useSkillSwap() {
         if (updatedUser.user_id === userId) {
           setUserName(updatedUser.username);
           setHoursBalance(updatedUser.hours_balance ?? 3);
+          setMyRating(parseFloat(updatedUser.average_rating) || 5.0);
+          setMyReviewCount(updatedUser.review_count || 0);
           setUserProfile({
             bio: updatedUser.bio || "",
             title: updatedUser.title || "SkillSwapper",
@@ -308,10 +312,14 @@ export function useSkillSwap() {
           is_online: true
         }]);
         setUserName(metaName);
+        setMyRating(5.0);
+        setMyReviewCount(0);
         setShowBioStep(false); 
       } else {
         setUserName(user.username);
         setHoursBalance(user.hours_balance ?? 3);
+        setMyRating(parseFloat(user.average_rating) || 5.0);
+        setMyReviewCount(user.review_count || 0);
         setUserProfile({
           bio: user.bio || "", 
           title: user.title || "SkillSwapper", 
@@ -900,9 +908,12 @@ export function useSkillSwap() {
       .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
-        if (isSearching) return true;
-        if (sortBy === "Top Rated") return m.rating >= 4.0;
-        return true;
+        
+        // 1. If actively typing in the search bar, show everyone (gives them a chance)
+        if (isSearching) return true; 
+        
+        // 2. If NOT searching (just browsing "All" or Categories), strictly HIDE anyone below 4.0
+        return m.rating >= 4.0; 
       })
       .map(person => {
         const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));
@@ -970,9 +981,9 @@ export function useSkillSwap() {
 
   const state = { 
     loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, unreadCount, unreadCounts, isAdmin, socket: getSocket(),
-    isVerifyingAuth, authStatusMessage, authSuccess
+    isVerifyingAuth, authStatusMessage, authSuccess, myRating, myReviewCount
   };
-  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount, setUnreadCounts };
+  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount, setUnreadCounts, setMyRating, setMyReviewCount };
   
   const actions = { 
     handleAuth, 

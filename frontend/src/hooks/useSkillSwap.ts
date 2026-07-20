@@ -874,12 +874,15 @@ export function useSkillSwap() {
 
   const filteredMatches = useMemo(() => {
     let scoredResults = allMatches
-      .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id) && m.rating >= 4.0)
+      .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
-        if (isSearching) return true;
-        if (sortBy === "Top Rated") return m.rating >= 4.0;
-        return true;
+        
+        // If the user is actively searching, show everyone (gives them a chance)
+        if (isSearching) return true; 
+        
+        // If NOT searching, hide anyone below 4.0 from the general dashboard
+        return m.rating >= 4.0; 
       })
       .map(person => {
         const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));

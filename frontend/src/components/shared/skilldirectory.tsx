@@ -1,11 +1,23 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft, Plus, Check, Sparkles, LayoutGrid, ArrowRight, Search } from 'lucide-react';
 import { categories } from "../../constants/data";
 
 export default function SkillDirectory({ state, setters, actions }: any) {
   const [skillSearch, setSkillSearch] = useState("");
   
+  // Fix: Prevent dashboard background from scrolling when the Skill Directory is active on all devices
+  useEffect(() => {
+    if (state.showDirectory) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [state.showDirectory]);
+
   if (!state.showDirectory) return null;
   
   const isLearning = state.addingSkillType === 'learning';

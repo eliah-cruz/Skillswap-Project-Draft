@@ -53,6 +53,18 @@ export default function DashboardHub({ state, setters, actions }: any) {
     };
   }, []);
 
+  // Fix: Prevent dashboard background from scrolling when the Report or Reviews modal is active
+  useEffect(() => {
+    if (showReportModal || activeReviewsMember) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showReportModal, activeReviewsMember]);
+
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
       case "Development": return <Code size={16} />;
@@ -481,7 +493,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
             <div className="bg-slate-50 rounded-[3rem] md:rounded-[4rem] border-4 border-dashed border-slate-200 p-12 md:p-24 text-center mx-4 md:mx-0">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-xl text-slate-300"><Search size={28} /></div>
               <p className="text-slate-500 font-black uppercase text-xs md:text-sm tracking-widest">No matching creators found</p>
-              <button type="button" onClick={() => { setters.setActiveCategoryFilter("All"); setters.setSearchQuery(""); setters.setSortBy("Recommended"); }} className="mt-5 md:mt-6 bg-indigo-600 text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest cursor-pointer shadow-lg hover:bg-indigo-700 transition-all">Clear Everything</button>
+              <button type="button" onClick={() => { setters.setActiveCategoryFilter("All"); setters.setSearchQuery(""); setters.setSortBy("Recommended"); }} className="mt-5 md:mt-6 bg-indigo-600 text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-black text-[10px] md:text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:bg-indigo-700 transition-all">Clear Everything</button>
             </div>
           )}
         </div>
@@ -561,11 +573,8 @@ export default function DashboardHub({ state, setters, actions }: any) {
                       <Coins size={12} className="fill-amber-400 shrink-0" />
                       <span className="text-[9px] md:text-[10px] font-black tracking-widest">{state.hoursBalance} HR</span>
                       
-                      <div className={`absolute right-0 bottom-full sm:bottom-auto sm:top-10 mb-2 sm:mb-0 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl transition-all duration-200 text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800 ${
-                        showHoursTooltip 
-                          ? 'opacity-100 pointer-events-auto scale-100' 
-                          : 'opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-100'
-                      }`}>
+                      {/* Desktop Absolute Tooltip (Hidden on mobile) */}
+                      <div className="absolute hidden sm:block right-0 top-10 w-64 bg-slate-950 text-white p-4 rounded-xl shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-100 transition-all duration-200 text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
                         💡 How Your Time-Bank Works:<br />
                         • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
                         • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
@@ -574,6 +583,16 @@ export default function DashboardHub({ state, setters, actions }: any) {
                     </div>
                   </div>
                 </div>
+
+                {/* Mobile Tooltip (Relative accordion - renders inline on mobile under the header, completely preventing overlap/clip) */}
+                {showHoursTooltip && (
+                  <div className="sm:hidden block bg-slate-950 text-white p-4 rounded-2xl text-left text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800 mb-6 animate-in slide-in-from-top-2 duration-200">
+                    💡 How Your Time-Bank Works:<br />
+                    • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
+                    • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
+                    • <b>Constructive Reviews:</b> Reviews between 1★ and 3★ are always <b>FREE</b> and do not deduct any hours.
+                  </div>
+                )}
 
                 <div className="space-y-5 md:space-y-6 relative z-10 text-left">
                     <div>

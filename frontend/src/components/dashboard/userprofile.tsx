@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Briefcase, MapPin, Save, Award } from 'lucide-react';
+import { User, Briefcase, MapPin, Save, Award, Clock } from 'lucide-react';
 
 const COUNTRIES = [
   "Philippines", "United States", "United Kingdom", "Canada", 
@@ -17,7 +17,8 @@ export default function UserProfile({ state, setters, actions }: any) {
     bio: state.userProfile?.bio || "",
     title: state.userProfile?.title || "",
     location: state.userProfile?.location || COUNTRIES[0],
-    experienceLevel: state.userProfile?.experienceLevel || EXPERIENCE_LEVELS[0]
+    experienceLevel: state.userProfile?.experienceLevel || EXPERIENCE_LEVELS[0],
+    availability: state.userProfile?.availability || "Flexible"
   }));
 
   // Track values in a mutable ref to ensure the unmount cleanup can auto-save cleanly
@@ -33,7 +34,8 @@ export default function UserProfile({ state, setters, actions }: any) {
       bio: state.userProfile?.bio || "",
       title: state.userProfile?.title || "",
       location: state.userProfile?.location || COUNTRIES[0],
-      experienceLevel: state.userProfile?.experienceLevel || EXPERIENCE_LEVELS[0]
+      experienceLevel: state.userProfile?.experienceLevel || EXPERIENCE_LEVELS[0],
+      availability: state.userProfile?.availability || "Flexible"
     };
 
     return () => {
@@ -43,7 +45,8 @@ export default function UserProfile({ state, setters, actions }: any) {
         current.bio !== initialForm.bio ||
         current.title !== initialForm.title ||
         current.location !== initialForm.location ||
-        current.experienceLevel !== initialForm.experienceLevel;
+        current.experienceLevel !== initialForm.experienceLevel ||
+        current.availability !== initialForm.availability;
 
       if (hasChanged) {
         // Silently saves details to Supabase when switching tabs away
@@ -52,7 +55,8 @@ export default function UserProfile({ state, setters, actions }: any) {
           bio: current.bio,
           title: current.title,
           location: current.location,
-          experienceLevel: current.experienceLevel
+          experienceLevel: current.experienceLevel,
+          availability: current.availability
         }, true);
       }
     };
@@ -73,7 +77,8 @@ export default function UserProfile({ state, setters, actions }: any) {
       bio: formData.bio,
       title: formData.title,
       location: formData.location,
-      experienceLevel: formData.experienceLevel
+      experienceLevel: formData.experienceLevel,
+      availability: formData.availability
     }, false); // Normal save triggers instant redirect to dashboard
   };
 
@@ -125,7 +130,7 @@ export default function UserProfile({ state, setters, actions }: any) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
               <label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                 <Award size={14}/> Experience Level
@@ -152,6 +157,21 @@ export default function UserProfile({ state, setters, actions }: any) {
                 {COUNTRIES.map(country => (
                   <option key={country} value={country}>{country}</option>
                 ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <Clock size={14}/> Availability
+              </label>
+              <select 
+                name="availability" value={formData.availability} onChange={handleChange}
+                className="w-full bg-slate-50 p-4 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-bold text-slate-800 cursor-pointer"
+              >
+                <option value="Flexible">Flexible</option>
+                <option value="Weekends">Weekends</option>
+                <option value="Evenings Only">Evenings Only</option>
+                <option value="Mornings">Mornings</option>
               </select>
             </div>
           </div>

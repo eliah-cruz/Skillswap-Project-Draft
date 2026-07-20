@@ -1,3 +1,5 @@
+// components/dashboard/dashboardhub.tsx
+
 "use client";
 import React, { useState, useEffect } from 'react';
 import { 
@@ -523,27 +525,29 @@ export default function DashboardHub({ state, setters, actions }: any) {
             </div>
 
             {/* My Skill Profile */}
-            <div className="bg-slate-900 p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl shadow-slate-200/50 text-white relative overflow-hidden border border-slate-800">
+            <div className="bg-slate-900 p-5 xs:p-6 sm:p-8 rounded-[2.5rem] md:rounded-[3rem] shadow-2xl shadow-slate-200/50 text-white relative overflow-hidden border border-slate-800">
                 <div className="absolute -right-8 -bottom-8 opacity-5 text-slate-400"><Zap size={120} className="md:w-[150px] md:h-[150px]" /></div>
                 
-                <div className="flex justify-between items-center mb-6 md:mb-8 border-b border-slate-800 pb-4">
-                  <h4 className="font-black text-[11px] md:text-[12px] uppercase tracking-widest flex items-center gap-1.5 md:gap-2"><Sparkles size={14} className="text-amber-400 md:w-4 md:h-4" /> My Skill Profile</h4>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8 border-b border-slate-800 pb-4">
+                  <h4 className="font-black text-[10px] sm:text-[11px] md:text-[12px] uppercase tracking-widest flex items-center gap-1.5 sm:gap-2">
+                    <Sparkles size={14} className="text-amber-400 shrink-0" /> My Skill Profile
+                  </h4>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
                     {/* My Own Star Rating Badge */}
-                    <div className="flex items-center gap-1 bg-slate-800 text-amber-400 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-slate-700 shadow-sm cursor-default">
-                      <Star size={12} className="fill-amber-400 md:w-3.5 md:h-3.5" />
-                      <span className="text-[9px] md:text-[10px] font-black tracking-widest">
+                    <div className="flex items-center gap-1 bg-slate-800 text-amber-400 px-2.5 py-1.5 sm:py-1 rounded-lg sm:rounded-xl border border-slate-700 shadow-sm cursor-default shrink-0">
+                      <Star size={12} className="fill-amber-400 shrink-0" />
+                      <span className="text-[9px] font-black tracking-widest">
                         {state.myReviewCount === 0 ? "NEW" : state.myRating.toFixed(1)}
                       </span>
                     </div>
 
                     {/* Explanatory hours balance box */}
-                    <div className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-amber-400/20 cursor-help">
-                      <Coins size={12} className="fill-amber-400 md:w-3.5 md:h-3.5" />
-                      <span className="text-[9px] md:text-[10px] font-black tracking-widest">{state.hoursBalance} HR</span>
+                    <div className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-2.5 py-1.5 sm:py-1 rounded-lg sm:rounded-xl border border-amber-400/20 cursor-help shrink-0">
+                      <Coins size={12} className="fill-amber-400 shrink-0" />
+                      <span className="text-[9px] font-black tracking-widest">{state.hoursBalance} HR</span>
                       
-                      <div className="absolute right-0 top-8 md:top-10 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
+                      <div className="absolute right-0 bottom-full sm:bottom-auto sm:top-10 mb-2 sm:mb-0 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
                         💡 How Your Time-Bank Works:<br />
                         • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
                         • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />

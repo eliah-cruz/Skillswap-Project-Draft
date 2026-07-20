@@ -1,5 +1,3 @@
-// src/components/shared/messenger.tsx
-
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { 
@@ -32,6 +30,18 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
   useEffect(() => {
     if (!state.showChat) setIsMaximized(false);
+  }, [state.showChat]);
+
+  // Fix: Prevents the background behind the sliding chat drawer from scrolling on all devices
+  useEffect(() => {
+    if (state.showChat) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [state.showChat]);
 
   const handleSubmitReview = (e: React.FormEvent) => {

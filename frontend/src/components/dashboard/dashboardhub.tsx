@@ -1,5 +1,3 @@
-// components/dashboard/dashboardhub.tsx
-
 "use client";
 import React, { useState, useEffect } from 'react';
 import { 
@@ -27,6 +25,8 @@ export default function DashboardHub({ state, setters, actions }: any) {
   const [reviewPage, setReviewPage] = useState(1);
   const reviewsPerPage = 2;
 
+  const [showHoursTooltip, setShowHoursTooltip] = useState(false); // NEW: Tracks manual tooltip click/tap state
+
   useEffect(() => {
     setCurrentPage(1);
   }, [state.activeCategoryFilter, state.searchQuery, state.onlineOnly]);
@@ -41,6 +41,17 @@ export default function DashboardHub({ state, setters, actions }: any) {
   useEffect(() => {
     setReviewPage(1);
   }, [activeReviewsMember]);
+
+  // Fix: Click anywhere on the screen closes the tooltip on touch devices/mobile/TVs
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setShowHoursTooltip(false);
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+    };
+  }, []);
 
   const getCategoryIcon = (cat: string) => {
     switch (cat) {
@@ -470,7 +481,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
             <div className="bg-slate-50 rounded-[3rem] md:rounded-[4rem] border-4 border-dashed border-slate-200 p-12 md:p-24 text-center mx-4 md:mx-0">
               <div className="w-16 h-16 md:w-20 md:h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-xl text-slate-300"><Search size={28} /></div>
               <p className="text-slate-500 font-black uppercase text-xs md:text-sm tracking-widest">No matching creators found</p>
-              <button type="button" onClick={() => { setters.setActiveCategoryFilter("All"); setters.setSearchQuery(""); setters.setSortBy("Recommended"); }} className="mt-5 md:mt-6 bg-indigo-600 text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-black text-[10px] md:text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:bg-indigo-700 transition-all">Clear Everything</button>
+              <button type="button" onClick={() => { setters.setActiveCategoryFilter("All"); setters.setSearchQuery(""); setters.setSortBy("Recommended"); }} className="mt-5 md:mt-6 bg-indigo-600 text-white px-6 md:px-8 py-2.5 md:py-3 rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-widest cursor-pointer shadow-lg hover:bg-indigo-700 transition-all">Clear Everything</button>
             </div>
           )}
         </div>
@@ -543,11 +554,18 @@ export default function DashboardHub({ state, setters, actions }: any) {
                     </div>
 
                     {/* Explanatory hours balance box */}
-                    <div className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-2.5 py-1.5 sm:py-1 rounded-lg sm:rounded-xl border border-amber-400/20 cursor-help shrink-0">
+                    <div 
+                      onClick={(e) => { e.stopPropagation(); setShowHoursTooltip(!showHoursTooltip); }}
+                      className="relative group flex items-center gap-1.5 bg-amber-400/10 text-amber-400 px-2.5 py-1.5 sm:py-1 rounded-lg sm:rounded-xl border border-amber-400/20 cursor-help shrink-0 select-none"
+                    >
                       <Coins size={12} className="fill-amber-400 shrink-0" />
-                      <span className="text-[9px] font-black tracking-widest">{state.hoursBalance} HR</span>
+                      <span className="text-[9px] md:text-[10px] font-black tracking-widest">{state.hoursBalance} HR</span>
                       
-                      <div className="absolute right-0 bottom-full sm:bottom-auto sm:top-10 mb-2 sm:mb-0 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
+                      <div className={`absolute right-0 bottom-full sm:bottom-auto sm:top-10 mb-2 sm:mb-0 w-56 md:w-64 bg-slate-950 text-white p-3 md:p-4 rounded-xl shadow-xl transition-all duration-200 text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800 ${
+                        showHoursTooltip 
+                          ? 'opacity-100 pointer-events-auto scale-100' 
+                          : 'opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-100'
+                      }`}>
                         💡 How Your Time-Bank Works:<br />
                         • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
                         • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />

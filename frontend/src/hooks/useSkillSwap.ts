@@ -1,5 +1,3 @@
-// src/hooks/useSkillSwap.ts
-
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../lib/supabase";
@@ -40,6 +38,7 @@ export function useSkillSwap() {
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
   const [hoursBalance, setHoursBalance] = useState<number>(3); 
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({}); // NEW: Tracks unread per user
 
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
 
@@ -192,6 +191,10 @@ export function useSkillSwap() {
         s.emit("mark_seen", { match_id: currentMatchId, user_id: loadedUserIdRef.current });
       } else {
         setUnreadCount(prev => prev + 1);
+        setUnreadCounts(prev => ({
+          ...prev,
+          [data.sender_id]: (prev[data.sender_id] || 0) + 1
+        }));
       }
 
       setMessages((prev) => [...prev, newMsg]);
@@ -348,10 +351,20 @@ export function useSkillSwap() {
 
       const { data: unreadMsgs } = await supabase
         .from('messages')
-        .select('message_id')
+        .select('message_id, sender_id')
         .eq('is_read', false)
         .neq('sender_id', uid);
-      setUnreadCount(unreadMsgs ? unreadMsgs.length : 0);
+      
+      let totalUnread = 0;
+      const counts: Record<string, number> = {};
+      if (unreadMsgs) {
+        totalUnread = unreadMsgs.length;
+        unreadMsgs.forEach(msg => {
+          counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+        });
+      }
+      setUnreadCount(totalUnread);
+      setUnreadCounts(counts);
 
       const { data: matches } = await supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`);
       if (matches) {
@@ -662,14 +675,24 @@ export function useSkillSwap() {
         })));
     }
 
-    // Recalculate global unread count
+    // Recalculate global and individual unread counts
     if (userId) {
       const { data: unreadMsgs } = await supabase
         .from('messages')
-        .select('message_id')
+        .select('message_id, sender_id')
         .eq('is_read', false)
         .neq('sender_id', userId);
-      setUnreadCount(unreadMsgs ? unreadMsgs.length : 0);
+        
+      let totalUnread = 0;
+      const counts: Record<string, number> = {};
+      if (unreadMsgs) {
+        totalUnread = unreadMsgs.length;
+        unreadMsgs.forEach(msg => {
+          counts[msg.sender_id] = (counts[msg.sender_id] || 0) + 1;
+        });
+      }
+      setUnreadCount(totalUnread);
+      setUnreadCounts(counts);
     }
   };
 
@@ -877,12 +900,9 @@ export function useSkillSwap() {
       .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
-        
-        // If the user is actively searching, show everyone (gives them a chance)
-        if (isSearching) return true; 
-        
-        // If NOT searching, hide anyone below 4.0 from the general dashboard
-        return m.rating >= 4.0; 
+        if (isSearching) return true;
+        if (sortBy === "Top Rated") return m.rating >= 4.0;
+        return true;
       })
       .map(person => {
         const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));
@@ -949,10 +969,10 @@ export function useSkillSwap() {
   }, [activeChatIDs, blockedUsers, reportedUsers, allMatches]);
 
   const state = { 
-    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, unreadCount, isAdmin, socket: getSocket(),
+    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, unreadCount, unreadCounts, isAdmin, socket: getSocket(),
     isVerifyingAuth, authStatusMessage, authSuccess
   };
-  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount };
+  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount, setUnreadCounts };
   
   const actions = { 
     handleAuth, 

@@ -1,5 +1,3 @@
-// src/components/layout/header.tsx
-
 "use client";
 import React, { useState } from 'react';
 import { LogOut, MessageSquare, Zap, Settings, UserCircle, ArrowRight, Shield } from 'lucide-react';
@@ -92,19 +90,38 @@ export default function Header({ state, setters, actions }: any) {
                       </div>
                       <div className="max-h-[50vh] md:max-h-[60vh] overflow-y-auto no-scrollbar">
                         {state.activeChatUsers?.length > 0 ? (
-                          state.activeChatUsers.map((user: any) => (
+                          state.activeChatUsers.map((user: any) => {
+                            const unreadForUser = state.unreadCounts?.[user.id] || 0;
+                            const history = state.chatHistory?.[user.id];
+                            const lastMsg = history && history.length > 0 ? history[history.length - 1] : null;
+
+                            return (
                             <button key={user.id} onClick={() => handleSelectChat(user)} className="w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 border-b border-slate-50 hover:bg-indigo-50/50 transition-colors text-left group cursor-pointer">
                               <div className="relative shrink-0">
-                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-black text-sm md:text-lg shadow-inner overflow-hidden">{user.image ? <img src={user.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{user.name.substring(0,2)}</span>}</div>
+                                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-sm md:text-lg overflow-hidden shadow-inner transition-all ${unreadForUser > 0 ? 'bg-indigo-600 text-white shadow-md' : 'bg-indigo-100 text-indigo-600'}`}>
+                                  {user.image ? <img src={user.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{user.name.substring(0,2)}</span>}
+                                </div>
                                 <span className={`absolute -bottom-1 -right-1 w-3 h-3 md:w-3.5 md:h-3.5 border-2 border-white rounded-full shadow-sm ${user.status === 'Online' ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h5 className="text-xs md:text-sm font-black text-slate-900 truncate">{user.name}</h5>
-                                <p className="text-[9px] md:text-[10px] font-bold text-slate-500 truncate uppercase tracking-widest mt-0.5 md:mt-1">Teaches: {user.teaching ? user.teaching.split(',')[0] : 'Various Skills'}</p>
+                                <div className="flex justify-between items-baseline mb-0.5">
+                                  <h5 className={`text-xs md:text-sm font-black truncate ${unreadForUser > 0 ? 'text-indigo-600' : 'text-slate-900'}`}>{user.name}</h5>
+                                  {lastMsg && <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest ${unreadForUser > 0 ? 'text-indigo-500' : 'text-slate-400'}`}>{lastMsg.timestamp}</span>}
+                                </div>
+                                <p className={`text-[9px] md:text-[10px] truncate mt-0.5 md:mt-1 uppercase tracking-widest ${unreadForUser > 0 ? 'text-indigo-500 font-black' : 'text-slate-500 font-bold'}`}>
+                                  {lastMsg ? (lastMsg.type === 'file' ? '📁 Attachment' : (lastMsg.sender === 'me' ? `You: ${lastMsg.text}` : lastMsg.text)) : `Teaches: ${user.teaching ? user.teaching.split(',')[0] : 'Skills'}`}
+                                </p>
                               </div>
-                              <ArrowRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0 md:w-4 md:h-4" />
+                              
+                              {unreadForUser > 0 ? (
+                                <div className="bg-red-500 text-white text-[9px] md:text-[10px] font-black w-5 h-5 flex items-center justify-center rounded-full shadow-sm shrink-0 animate-pulse">
+                                  {unreadForUser > 99 ? '99+' : unreadForUser}
+                                </div>
+                              ) : (
+                                <ArrowRight size={14} className="text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0 md:w-4 md:h-4" />
+                              )}
                             </button>
-                          ))
+                          )})
                         ) : (
                           <div className="p-6 md:p-8 text-center flex flex-col items-center justify-center">
                             <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-3 md:mb-4"><MessageSquare className="w-5 h-5 md:w-6 md:h-6" /></div>

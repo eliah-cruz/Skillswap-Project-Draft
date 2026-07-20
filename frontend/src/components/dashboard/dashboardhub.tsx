@@ -487,26 +487,30 @@ export default function DashboardHub({ state, setters, actions }: any) {
                         const isSelected = state.activeChatPartner?.id === p.id;
                         const history = state.chatHistory[p.id];
                         const lastMsg = history && history.length > 0 ? history[history.length - 1] : null;
-                        const isUnread = lastMsg && lastMsg.sender === 'them' && !lastMsg.isRead;
+                        const unreadCount = state.unreadCounts?.[p.id] || 0;
 
                         return (
                           <button type="button" key={p.id} onClick={() => goToChat(p)} className={`w-full flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-[1.5rem] md:rounded-[2rem] border transition-all group cursor-pointer relative ${isSelected ? 'bg-indigo-600 border-indigo-700 shadow-xl text-white translate-x-1.5 md:translate-x-2' : 'bg-slate-50 border-slate-100 hover:border-indigo-300 hover:bg-indigo-50/50 shadow-sm'}`}>
                             <div className="relative shrink-0">
-                              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-[1rem] md:rounded-[1.2rem] flex-shrink-0 overflow-hidden border-2 border-white shadow-sm flex items-center justify-center font-black text-sm md:text-base ${isSelected ? 'bg-indigo-500 text-white' : 'bg-indigo-100 text-indigo-600'}`}>
+                              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-[1rem] md:rounded-[1.2rem] flex-shrink-0 overflow-hidden border-2 border-white shadow-sm flex items-center justify-center font-black text-sm md:text-base transition-all ${isSelected ? 'bg-indigo-500 text-white' : unreadCount > 0 ? 'bg-indigo-600 text-white shadow-lg' : 'bg-indigo-100 text-indigo-600'}`}>
                                 {p.image ? <img src={p.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{p.name.substring(0,2)}</span>}
                               </div>
                               {p.status === 'Online' && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 md:w-3.5 md:h-3.5 bg-emerald-500 rounded-full border-2 border-white"></span>}
                             </div>
                             <div className="flex-1 text-left min-w-0">
                               <div className="flex justify-between items-baseline mb-0.5">
-                                <p className={`text-xs md:text-[13px] font-black truncate pr-2 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{p.name}</p>
-                                {lastMsg && <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest shrink-0 ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>{lastMsg.timestamp}</span>}
+                                <p className={`text-xs md:text-[13px] font-black truncate pr-2 ${isSelected ? 'text-white' : unreadCount > 0 ? 'text-indigo-600' : 'text-slate-900'}`}>{p.name}</p>
+                                {lastMsg && <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest shrink-0 ${isSelected ? 'text-indigo-200' : unreadCount > 0 ? 'text-indigo-500' : 'text-slate-400'}`}>{lastMsg.timestamp}</span>}
                               </div>
                               <div className="flex items-center gap-1.5 md:gap-2">
-                                <p className={`text-[10px] md:text-[11px] truncate ${isSelected ? 'text-indigo-100 font-medium' : isUnread ? 'text-indigo-600 font-black' : 'text-slate-500 font-medium'}`}>
+                                <p className={`text-[10px] md:text-[11px] truncate ${isSelected ? 'text-indigo-100 font-medium' : unreadCount > 0 ? 'text-indigo-500 font-black' : 'text-slate-500 font-medium'}`}>
                                   {lastMsg ? (lastMsg.type === 'file' ? '📁 File attachment' : (lastMsg.sender === 'me' ? `You: ${lastMsg.text}` : lastMsg.text)) : `Teaches: ${p.teaching.split(',')[0]}`}
                                 </p>
-                                {isUnread && !isSelected && <div className="w-2 h-2 md:w-2.5 md:h-2.5 bg-indigo-500 rounded-full shrink-0 ml-auto shadow-sm animate-pulse"></div>}
+                                {unreadCount > 0 && !isSelected && (
+                                  <div className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 ml-auto shadow-sm animate-pulse">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </button>

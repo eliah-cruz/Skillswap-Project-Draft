@@ -126,9 +126,13 @@ export default function DashboardHub({ state, setters, actions }: any) {
           50% { transform: scale(1.01); filter: brightness(1.05); }
           100% { transform: scale(1); filter: brightness(1); }
         }
+        @keyframes circularPulse {
+          0%, 100% { box-shadow: 0 0 12px rgba(16, 185, 129, 0.3); border-color: rgba(16, 185, 129, 0.5); }
+          50% { box-shadow: 0 0 28px rgba(16, 185, 129, 0.7); border-color: rgba(16, 185, 129, 0.9); }
+        }
         @keyframes newMemberPulse {
-          0%, 100% { border-color: #a7f3d0; box-shadow: 0 0 8px rgba(16, 185, 129, 0.1); }
-          50% { border-color: #34d399; box-shadow: 0 0 16px rgba(16, 185, 129, 0.3); }
+          0%, 100% { border-color: #bae6fd; box-shadow: 0 0 8px rgba(14, 165, 233, 0.1); }
+          50% { border-color: #38bdf8; box-shadow: 0 0 16px rgba(14, 165, 233, 0.3); }
         }
         .animate-glow-amber {
           animation: glowPulse 2s infinite ease-in-out;
@@ -137,6 +141,10 @@ export default function DashboardHub({ state, setters, actions }: any) {
         .animate-match-boost {
           animation: matchParticles 0.8s ease-out forwards;
           will-change: transform, filter;
+        }
+        .animate-circular-pulse {
+          animation: circularPulse 2.5s infinite ease-in-out;
+          will-change: box-shadow, border-color;
         }
         .animate-new-pulse {
           animation: newMemberPulse 3s infinite ease-in-out;
@@ -165,7 +173,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
           <div className="bg-white p-2 rounded-[2rem] md:rounded-[2.5rem] border-4 border-slate-100 shadow-lg flex items-center gap-1 shrink-0 overflow-x-auto no-scrollbar">
             <div className="px-3 md:px-4 text-slate-400 hidden sm:block"><Filter size={18} /></div>
             {["Recommended", "Top Rated", "Newest"].map((sort) => (
-                <button type="button" key={sort} onClick={() => setters.setSortBy(sort)} className={`whitespace-nowrap px-4 md:px-6 py-2.5 md:py-3 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-tight transition-all cursor-pointer ${state.sortBy === sort ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
+                <button type="button" key={sort} onClick={() => setters.setSortBy(sort)} className={`whitespace-nowrap px-4 md:px-6 py-2.5 md:py-3 rounded-full text-[11px] md:text-xs font-black uppercase tracking-tight transition-all cursor-pointer ${state.sortBy === sort ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}>
                     {sort}
                 </button>
             ))}
@@ -182,8 +190,8 @@ export default function DashboardHub({ state, setters, actions }: any) {
             </div>
             <div className="flex items-center justify-between xl:justify-end gap-4 xl:border-l-2 border-slate-100 xl:pl-6 px-4 xl:pr-6 shrink-0 pt-2 xl:pt-0 border-t-2 xl:border-t-0 border-slate-100">
                 <div className="flex flex-col items-start xl:items-end">
-                    <span className="text-[8px] md:text-[9px] font-black uppercase text-indigo-600 tracking-widest">Availability</span>
-                    <span className="text-[10px] md:text-[11px] font-bold text-slate-500">Online Only</span>
+                    <span className="text-[9px] md:text-[10px] font-black uppercase text-indigo-600 tracking-widest">Availability</span>
+                    <span className="text-[11px] md:text-xs font-bold text-slate-500">Online Only</span>
                 </div>
                 <button type="button" onClick={() => setters.setOnlineOnly(!state.onlineOnly)} className={`cursor-pointer w-10 md:w-12 h-5 md:h-6 rounded-full transition-all relative border-2 ${state.onlineOnly ? 'bg-emerald-500 border-emerald-600' : 'bg-slate-300 border-slate-400'}`}>
                     <div className={`absolute top-0.5 w-3 h-3 md:w-4 md:h-4 bg-white rounded-full shadow-md transition-all ${state.onlineOnly ? 'left-6 md:left-7' : 'left-0.5'}`} />
@@ -226,36 +234,29 @@ export default function DashboardHub({ state, setters, actions }: any) {
                   let cardBgClass = "bg-white";
                   let cardGlowEffect = "";
 
-                  if (state.sortBy === "Recommended") {
-                    if (m.isMutualMatch) {
-                      cardBorderClass = "border-indigo-400";
-                      cardBgClass = "bg-gradient-to-br from-white via-indigo-50/5 to-indigo-50/15";
-                      cardGlowEffect = "animate-match-boost";
-                    } else if (m.isCircularMatch) {
-                      cardBorderClass = "border-teal-300";
-                      cardBgClass = "bg-gradient-to-br from-white via-teal-50/5 to-teal-50/10";
-                      cardGlowEffect = "animate-match-boost";
-                    } else if (m.matchScore && m.matchScore > 50) {
-                      cardBorderClass = "border-indigo-200";
-                    }
-                  } else if (state.sortBy === "Top Rated") {
-                    if (isHighRated) {
-                      cardBorderClass = "border-amber-400";
-                      cardBgClass = "bg-gradient-to-br from-white to-amber-50/5";
-                      cardGlowEffect = "animate-glow-amber";
-                    }
-                  } else if (state.sortBy === "Newest") {
-                    if (isNewMember) {
-                      cardBorderClass = "border-emerald-300";
-                      cardBgClass = "bg-gradient-to-br from-white via-emerald-50/5 to-emerald-50/10";
-                      cardGlowEffect = "animate-new-pulse";
-                    }
-                  }
-
+                  // Accurate visual tagging decoupled from just Recommended tab
                   if (isLowRated) {
                     cardBorderClass = "border-red-300";
-                    cardBgClass = "bg-red-50/5";
-                    cardGlowEffect = "";
+                    cardBgClass = "bg-red-50/10";
+                  } else if (m.isMutualMatch) {
+                    cardBorderClass = "border-indigo-400";
+                    cardBgClass = "bg-gradient-to-br from-white via-indigo-50/10 to-purple-50/10";
+                    cardGlowEffect = "animate-match-boost shadow-indigo-200/50 shadow-lg";
+                  } else if (m.isCircularMatch) {
+                    cardBorderClass = "border-emerald-400";
+                    cardBgClass = "bg-gradient-to-br from-white via-emerald-50/10 to-green-50/10";
+                    cardGlowEffect = "animate-circular-pulse";
+                  } else if (state.sortBy === "Top Rated" && isHighRated) {
+                    cardBorderClass = "border-amber-400";
+                    cardBgClass = "bg-gradient-to-br from-white to-amber-50/10";
+                    cardGlowEffect = "animate-glow-amber";
+                  } else if (state.sortBy === "Newest" && isNewMember) {
+                    cardBorderClass = "border-sky-300";
+                    cardBgClass = "bg-gradient-to-br from-white via-sky-50/10 to-sky-100/10";
+                    cardGlowEffect = "animate-new-pulse";
+                  } else if (state.sortBy === "Recommended" && m.matchScore && m.matchScore > 20) {
+                    cardBorderClass = "border-indigo-200";
+                    cardBgClass = "bg-white hover:bg-slate-50";
                   }
 
                   const safeBio = m.bio 
@@ -265,72 +266,77 @@ export default function DashboardHub({ state, setters, actions }: any) {
                   return (
                   <div key={m.id} className={`rounded-[2rem] md:rounded-[2.5rem] border-2 shadow-sm hover:shadow-xl transition-all group flex flex-col overflow-hidden ${cardBorderClass} ${cardBgClass} ${cardGlowEffect}`}>
                     
-                    {/* Top Banners */}
+                    {/* Top Banners prioritized strictly by visual importance */}
                     {isLowRated ? (
-                      <div className="w-full bg-red-500 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest py-2 md:py-2.5 text-center flex items-center justify-center gap-2 shadow-sm relative z-20">
-                        <AlertTriangle size={12} strokeWidth={3} /> Low Rating Warning
+                      <div className="w-full bg-red-500 text-white text-[10px] md:text-[11px] font-black uppercase tracking-widest py-2 md:py-2.5 text-center flex items-center justify-center gap-2 shadow-sm relative z-20">
+                        <AlertTriangle size={14} strokeWidth={3} /> Low Rating Warning
                       </div>
-                    ) : state.sortBy === "Recommended" && m.isMutualMatch ? (
-                      <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2 md:py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
-                        <Flame size={12} className="fill-white" /> Mutual Match
+                    ) : m.isMutualMatch ? (
+                      <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2 md:py-2.5 text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Flame size={14} className="fill-white" /> Mutual Match
                       </div>
-                    ) : state.sortBy === "Recommended" && m.isCircularMatch ? (
-                      <div className="w-full bg-gradient-to-r from-teal-400 to-emerald-500 text-white py-2 md:py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
-                        <Repeat size={12} className="text-white" /> Circular Match
-                      </div>
-                    ) : state.sortBy === "Recommended" && m.matchScore && m.matchScore > 20 ? (
-                      <div className="w-full bg-indigo-600 text-white py-2 md:py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
-                        <Heart size={12} className="fill-white animate-pulse" /> {Math.min(Math.round(m.matchScore), 99)}% Recommended Match
+                    ) : m.isCircularMatch ? (
+                      <div className="w-full bg-gradient-to-r from-emerald-500 to-green-500 text-white py-2 md:py-2.5 text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Repeat size={14} className="text-white" /> Circular Match
                       </div>
                     ) : state.sortBy === "Top Rated" && isHighRated ? (
-                      <div className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 py-2 md:py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
-                        <Star size={12} className="fill-amber-950 text-amber-950 animate-bounce" /> Highly Rated Educator
+                      <div className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 py-2 md:py-2.5 text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Star size={14} className="fill-amber-950 text-amber-950 animate-bounce" /> Highly Rated Educator
                       </div>
                     ) : state.sortBy === "Newest" && isNewMember ? (
-                      <div className="w-full bg-emerald-500 text-white py-2 md:py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
-                        <Sparkles size={12} className="fill-white" /> Fresh Joiner 🌱
+                      <div className="w-full bg-sky-500 text-white py-2 md:py-2.5 text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Sparkles size={14} className="fill-white" /> Fresh Joiner 🌱
+                      </div>
+                    ) : state.sortBy === "Recommended" && m.matchScore && m.matchScore > 20 ? (
+                      <div className="w-full bg-indigo-600 text-white py-2 md:py-2.5 text-[10px] md:text-[11px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                        <Heart size={14} className="fill-white animate-pulse" /> {Math.min(Math.round(m.matchScore), 99)}% Recommended Match
                       </div>
                     ) : null}
 
-                    {/* Highly Compacted Body Layout */}
-                    <div className="p-4 md:p-6 flex-1 flex flex-col relative text-left">
+                    {/* Increased Font Size Body Layout */}
+                    <div className="p-5 md:p-6 flex-1 flex flex-col relative text-left">
                       
                       {/* Desktop Badge */}
-                      <div className="hidden sm:block absolute top-4 right-4 md:top-6 md:right-6 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm z-20">
+                      <div className="hidden sm:block absolute top-4 right-4 md:top-6 md:right-6 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm z-20">
                         {m.category}
                       </div>
 
                       <div className="relative z-10 flex-1">
                         
                         {/* Header Info */}
-                        <div className="flex gap-3 md:gap-4 mb-3 sm:pr-20 items-center">
+                        <div className="flex gap-3 md:gap-4 mb-4 sm:pr-24 items-start">
                             <div className="relative shrink-0">
-                                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-[1.2rem] md:rounded-[1.5rem] flex items-center justify-center font-black text-lg md:text-xl shadow-inner border-2 border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
+                                <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[1.4rem] md:rounded-[1.6rem] flex items-center justify-center font-black text-xl md:text-2xl shadow-inner border-2 border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
                                     {m.image ? <img src={m.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{m.avatar || m.name.substring(0,2)}</span>}
                                 </div>
                             </div>
                             
-                            <div className="min-w-0 flex-1 text-left">
-                                <h4 className="text-[14px] md:text-[17px] font-black text-slate-900 truncate flex items-center gap-1.5 mb-0.5">
-                                    {m.name} {m.isVerified && <UserCheck size={14} className="text-indigo-500 shrink-0" />}
+                            <div className="min-w-0 flex-1 text-left pt-0.5">
+                                <h4 className="text-[16px] md:text-[18px] font-black text-slate-900 truncate flex items-center gap-1.5 mb-1">
+                                    {m.name} {m.isVerified && <UserCheck size={16} className="text-indigo-500 shrink-0" />}
                                 </h4>
 
-                                <div className="flex items-center gap-1.5">
-                                    <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full shadow-sm border border-white shrink-0 ${m.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                                    <p className="text-[9px] md:text-[11px] font-bold text-slate-500 truncate">{m.status} • {m.title}</p>
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <span className={`w-2 h-2 rounded-full shadow-sm border border-white shrink-0 ${m.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                                    <p className="text-[10px] md:text-[12px] font-bold text-slate-500 truncate">{m.status} • {m.title}</p>
+                                </div>
+                                
+                                {/* Mobile Category Badge */}
+                                <div className="sm:hidden inline-block bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm mt-0.5">
+                                  {m.category}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Interactive Review Button & Compact Tags */}
-                        <div className="flex flex-col gap-2 mb-3">
+                        {/* Interactive Review Button & Tags */}
+                        <div className="flex flex-col gap-2.5 mb-4">
                             <button 
                               type="button"
                               onClick={(e) => { 
                                 e.stopPropagation(); 
                                 if (m.reviewCount > 0) setActiveReviewsMember(m); 
                               }} 
-                              className={`self-start flex items-center gap-1.5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[9px] md:text-[10px] font-black border transition-all shadow-sm ${
+                              className={`self-start flex items-center gap-1.5 px-3 py-1.5 md:px-3.5 md:py-2 rounded-xl text-[10px] md:text-[12px] font-black border transition-all shadow-sm ${
                                 m.reviewCount === 0 
                                   ? 'bg-slate-50 text-slate-500 border-slate-200 cursor-default' 
                                   : isLowRated 
@@ -339,87 +345,87 @@ export default function DashboardHub({ state, setters, actions }: any) {
                               }`}
                             >
                                 {m.reviewCount === 0 ? (
-                                  <><Sparkles size={10} className="text-emerald-500" /> New Member</>
+                                  <><Sparkles size={12} className="text-sky-500" /> New Member</>
                                 ) : (
                                   <>
-                                    {isLowRated ? <AlertTriangle size={10} className="text-red-500" /> : <Star size={10} className="fill-amber-400 text-amber-400" />} 
+                                    {isLowRated ? <AlertTriangle size={12} className="text-red-500" /> : <Star size={12} className="fill-amber-400 text-amber-400" />} 
                                     {m.rating} Rating ({m.reviewCount})
-                                    <span className="ml-0.5 text-[7px] md:text-[8px] uppercase tracking-wider opacity-70 border-l border-current pl-1 flex items-center gap-0.5">View <ChevronRight size={8} /></span>
+                                    <span className="ml-1 text-[9px] md:text-[10px] uppercase tracking-wider opacity-70 border-l border-current pl-1.5 flex items-center gap-0.5">View <ChevronRight size={10} /></span>
                                   </>
                                 )}
                             </button>
                             
-                            <div className="flex flex-wrap gap-1 md:gap-1.5">
+                            <div className="flex flex-wrap gap-1.5 md:gap-2 mt-1">
                               {m.location && (
-                                <div className="text-[8px] md:text-[9px] font-black uppercase text-slate-500 tracking-wider px-2 py-1 bg-slate-50 rounded-md border border-slate-200 flex items-center gap-1 shadow-sm">
-                                  <MapPin size={8} className="text-slate-400" /> {m.location}
+                                <div className="text-[10px] md:text-[11px] font-black uppercase text-slate-500 tracking-wider px-2.5 py-1.5 bg-slate-50 rounded-lg md:rounded-xl border border-slate-200 flex items-center gap-1 shadow-sm">
+                                  <MapPin size={10} className="text-slate-400" /> {m.location}
                                 </div>
                               )}
-                              <div className="text-[8px] md:text-[9px] font-black uppercase text-slate-500 tracking-wider px-2 py-1 bg-slate-50 rounded-md border border-slate-200 shadow-sm">
+                              <div className="text-[10px] md:text-[11px] font-black uppercase text-slate-500 tracking-wider px-2.5 py-1.5 bg-slate-50 rounded-lg md:rounded-xl border border-slate-200 shadow-sm">
                                 {m.availability}
                               </div>
                               {m.experienceLevel && (
-                                <div className="text-[8px] md:text-[9px] font-black uppercase text-indigo-700 tracking-wider px-2 py-1 bg-indigo-50 rounded-md border border-indigo-100 flex items-center gap-1 shadow-sm">
-                                  <GraduationCap size={8} className="text-indigo-500" /> {m.experienceLevel}
+                                <div className="text-[10px] md:text-[11px] font-black uppercase text-indigo-700 tracking-wider px-2.5 py-1.5 bg-indigo-50 rounded-lg md:rounded-xl border border-indigo-100 flex items-center gap-1 shadow-sm">
+                                  <GraduationCap size={10} className="text-indigo-500" /> {m.experienceLevel}
                                 </div>
                               )}
-                              <div className="text-[8px] md:text-[9px] font-black uppercase text-amber-700 tracking-wider px-2 py-1 bg-amber-50 rounded-md border border-amber-200 flex items-center gap-1 shadow-sm">
-                                <Coins size={8} className="fill-amber-500 text-amber-500" /> {m.hoursBalance ?? 3} HR
+                              <div className="text-[10px] md:text-[11px] font-black uppercase text-amber-700 tracking-wider px-2.5 py-1.5 bg-amber-50 rounded-lg md:rounded-xl border border-amber-200 flex items-center gap-1 shadow-sm">
+                                <Coins size={10} className="fill-amber-500 text-amber-500" /> {m.hoursBalance ?? 3} HR
                               </div>
                             </div>
                         </div>
 
-                        {/* Ultra-slim Advisory */}
+                        {/* Advisory */}
                         {isNewMember && (
-                          <div className="mb-3 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
-                            <ShieldAlert className="text-emerald-600 shrink-0" size={12} />
-                            <p className="text-[8px] md:text-[9px] text-emerald-800 font-bold truncate">Fresh Member: Conduct sessions safely.</p>
+                          <div className="mb-4 bg-sky-50 border border-sky-100 rounded-xl p-3 md:p-3.5 flex items-center gap-2">
+                            <ShieldAlert className="text-sky-600 shrink-0" size={14} />
+                            <p className="text-[10px] md:text-[11px] text-sky-800 font-bold leading-tight">Fresh Member: Conduct sessions safely.</p>
                           </div>
                         )}
 
                         {/* Bio */}
-                        <div className="mb-3 px-2 border-l-2 border-slate-200">
-                          <p className="text-[10px] md:text-[11px] text-slate-500 italic leading-snug line-clamp-2 md:group-hover:line-clamp-none transition-all pl-2">"{safeBio}"</p>
+                        <div className="mb-4 px-2 border-l-[3px] border-slate-200">
+                          <p className="text-[12px] md:text-[14px] text-slate-500 italic leading-relaxed line-clamp-2 md:group-hover:line-clamp-none transition-all pl-2.5">"{safeBio}"</p>
                         </div>
 
-                        {/* Side-by-Side Teaching / Learning Layout (Even on Mobile) */}
-                        <div className="flex flex-row gap-2 md:gap-3 mb-3">
-                            <div className={`flex-1 p-2 md:p-2.5 rounded-xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
-                                <p className={`text-[7px] md:text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : 'text-indigo-600'}`}><BookOpen size={10} /> Will Teach</p>
-                                <p className="text-[10px] md:text-[11px] font-bold text-slate-900 relative z-10 leading-tight line-clamp-2 md:group-hover:line-clamp-none" title={m.teaching}>{m.teaching}</p>
+                        {/* Side-by-Side Teaching / Learning Layout (Readable) */}
+                        <div className="flex flex-row gap-2.5 md:gap-3 mb-4">
+                            <div className={`flex-1 p-3 rounded-xl md:rounded-2xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
+                                <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : 'text-indigo-600'}`}><BookOpen size={12} /> Will Teach</p>
+                                <p className="text-[12px] md:text-[13px] font-bold text-slate-900 relative z-10 leading-snug line-clamp-2 md:group-hover:line-clamp-none" title={m.teaching}>{m.teaching}</p>
                             </div>
-                            <div className={`flex-1 p-2 md:p-2.5 rounded-xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-emerald-50/70 border-emerald-300' : 'bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-100/50'}`}>
-                                <p className={`text-[7px] md:text-[8px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : 'text-emerald-600'}`}><Sparkles size={10} /> Wants to Learn</p>
-                                <p className="text-[10px] md:text-[11px] font-bold text-emerald-950 relative z-10 leading-tight line-clamp-2 md:group-hover:line-clamp-none" title={m.needs}>{m.needs}</p>
+                            <div className={`flex-1 p-3 rounded-xl md:rounded-2xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-purple-50/50 border-purple-200' : m.isCircularMatch ? 'bg-emerald-50/50 border-emerald-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
+                                <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : m.isMutualMatch ? 'text-purple-600' : m.isCircularMatch ? 'text-emerald-600' : 'text-slate-600'}`}><Sparkles size={12} /> Wants to Learn</p>
+                                <p className={`text-[12px] md:text-[13px] font-bold relative z-10 leading-snug line-clamp-2 md:group-hover:line-clamp-none ${m.isMutualMatch ? 'text-purple-950' : m.isCircularMatch ? 'text-emerald-950' : 'text-slate-900'}`} title={m.needs}>{m.needs}</p>
                             </div>
                         </div>
 
-                        {/* Compacted Circular Match Diagram */}
+                        {/* Circular Match Diagram (Green Themed) */}
                         {m.isCircularMatch && (
-                          <div className="mb-3 p-2.5 bg-teal-50/70 border border-teal-200 rounded-xl text-left animate-in slide-in-from-top-2 overflow-x-auto no-scrollbar block">
-                            <p className="text-[8px] md:text-[9px] font-black uppercase text-teal-800 tracking-wider mb-1.5 flex items-center gap-1">
-                              <Repeat size={10} className="text-teal-600" /> 3-Way Exchange Loop Detected
+                          <div className="mb-4 p-3.5 bg-emerald-50/70 border border-emerald-300 rounded-xl md:rounded-2xl text-left animate-in slide-in-from-top-2 overflow-x-auto no-scrollbar block shadow-inner">
+                            <p className="text-[10px] md:text-[11px] font-black uppercase text-emerald-800 tracking-wider mb-2.5 flex items-center gap-1.5">
+                              <Repeat size={12} className="text-emerald-600" /> 3-Way Exchange Loop Detected
                             </p>
                             
-                            <div className="flex items-center justify-between text-center gap-1 min-w-[180px]">
+                            <div className="flex items-center justify-between text-center gap-1 min-w-[220px]">
                               <div className="flex flex-col items-center">
-                                <div className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-[8px] font-black">YOU</div>
-                                <span className="text-[6px] font-black text-slate-400 uppercase mt-0.5">Teaches</span>
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-slate-900 text-white flex items-center justify-center text-[8px] md:text-[9px] font-black">YOU</div>
+                                <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase mt-1">Teaches</span>
                               </div>
-                              <ArrowRight size={10} className="text-teal-400" />
+                              <ArrowRight size={12} className="text-emerald-400" />
                               <div className="flex flex-col items-center">
-                                <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[8px] font-black uppercase">{m.name.substring(0, 2)}</div>
-                                <span className="text-[6px] font-black text-teal-600 uppercase mt-0.5">{m.name.split(' ')[0]}</span>
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-emerald-600 text-white flex items-center justify-center text-[8px] md:text-[9px] font-black uppercase shadow-md">{m.name.substring(0, 2)}</div>
+                                <span className="text-[7px] md:text-[8px] font-black text-emerald-700 uppercase mt-1">{m.name.split(' ')[0]}</span>
                               </div>
-                              <ArrowRight size={10} className="text-teal-400" />
+                              <ArrowRight size={12} className="text-emerald-400" />
                               <div className="flex flex-col items-center">
-                                <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-[10px] font-black">?</div>
-                                <span className="text-[6px] font-black text-indigo-500 uppercase mt-0.5">Peer C</span>
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-[11px] font-black">?</div>
+                                <span className="text-[7px] md:text-[8px] font-black text-indigo-500 uppercase mt-1">Peer C</span>
                               </div>
-                              <ArrowRight size={10} className="text-teal-400" />
+                              <ArrowRight size={12} className="text-emerald-400" />
                               <div className="flex flex-col items-center">
-                                <div className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-[8px] font-black">YOU</div>
-                                <span className="text-[6px] font-black text-slate-400 uppercase mt-0.5">Learns</span>
+                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-slate-900 text-white flex items-center justify-center text-[8px] md:text-[9px] font-black">YOU</div>
+                                <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase mt-1">Learns</span>
                               </div>
                             </div>
                           </div>
@@ -427,18 +433,18 @@ export default function DashboardHub({ state, setters, actions }: any) {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex gap-2.5 mt-auto relative z-10 pt-1">
-                        <button type="button" onClick={() => goToChat(m)} className={`flex-1 cursor-pointer text-white py-2.5 md:py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md ${isLowRated ? 'bg-red-600 hover:bg-slate-900' : 'bg-slate-900 hover:bg-indigo-600'}`}>
-                            <MessageSquare size={12} /> Message Now
+                      <div className="flex gap-2.5 mt-auto relative z-10 pt-2">
+                        <button type="button" onClick={() => goToChat(m)} className={`flex-1 cursor-pointer text-white py-3 md:py-3.5 rounded-xl md:rounded-2xl font-black text-[11px] md:text-[12px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md ${isLowRated ? 'bg-red-600 hover:bg-slate-900' : 'bg-slate-900 hover:bg-indigo-600'}`}>
+                            <MessageSquare size={14} /> Message Now
                         </button>
                         
                         <button 
                           type="button"
                           onClick={() => handleOpenReport(m)}
-                          className="cursor-pointer bg-red-50 text-red-400 hover:text-white hover:bg-red-500 p-2.5 md:p-3 rounded-xl transition-all border border-red-100 hover:border-red-500 shadow-sm flex items-center justify-center shrink-0"
+                          className="cursor-pointer bg-red-50 text-red-400 hover:text-white hover:bg-red-500 p-3 md:p-3.5 rounded-xl md:rounded-2xl transition-all border border-red-100 hover:border-red-500 shadow-sm flex items-center justify-center shrink-0"
                           title="Report User"
                         >
-                          <Flag size={12} />
+                          <Flag size={14} />
                         </button>
                       </div>
 

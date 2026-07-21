@@ -857,7 +857,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
               <ShieldAlert className="text-indigo-600 w-4 h-4 md:w-5 md:h-5 shrink-0 mt-0.5" />
               <p className="text-[10px] md:text-xs text-indigo-800 font-medium leading-relaxed">
                 <strong className="font-black uppercase tracking-widest text-indigo-900 block mb-0.5">Moderation Alert</strong>
-                Submitting this report will instantly notify the System Administrator. False reports may result in account suspension.
+                Submitting this report will instantly notify the System Administrator.
               </p>
             </div>
 

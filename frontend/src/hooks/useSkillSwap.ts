@@ -122,13 +122,12 @@ export function useSkillSwap() {
       }
     };
     
-    checkSession(); // Fast initial session check
+    checkSession(); 
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         const isSameUser = loadedUserIdRef.current === session.user.id;
         
-        // Multi-stage verification screen delay so users can read updates
         if (event === 'SIGNED_IN' && !isSameUser) {
           setIsVerifyingAuth(true);
           setAuthSuccess(false);
@@ -335,7 +334,6 @@ export function useSkillSwap() {
   const loadFullDatabaseState = async (uid: string, email: string, authUser?: any, silent = false) => {
     if (!silent) setLoading(true);
     try {
-      // MASSIVE PERFORMANCE BOOST: Parallelizing all independent database queries.
       const [
         { data: dbSkills },
         { data: user },
@@ -430,7 +428,6 @@ export function useSkillSwap() {
       setUnreadCount(totalUnread);
       setUnreadCounts(counts);
 
-      // Fetch match chat history completely in parallel for extreme speedup
       if (matches && matches.length > 0) {
           const chatPartnerIds = matches.map(m => m.mentor_id === uid ? m.student_id : m.mentor_id);
           setActiveChatIDs(chatPartnerIds);
@@ -629,7 +626,6 @@ export function useSkillSwap() {
     const merged = { ...userProfile, ...newData };
     const nameToSave = newData.name !== undefined ? newData.name : userName;
     
-    // Instantly sync the profile across all active components avoiding flashes
     setUserProfile({
       bio: merged.bio || "", 
       title: merged.title || "SkillSwapper", 
@@ -644,7 +640,6 @@ export function useSkillSwap() {
       triggerToast("Profile updated successfully!");
     }
     
-    // Asynchronous backend push (UI doesn't wait)
     await supabase.from('users').update({
         username: nameToSave,
         bio: merged.bio, 
@@ -948,6 +943,7 @@ export function useSkillSwap() {
     }
   };
 
+  // HIGHLY ACCURATE MATCHING ENGINE (Fixes Circular Matching Bug)
   const filteredMatches = useMemo(() => {
     let scoredResults = allMatches
       .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
@@ -957,22 +953,42 @@ export function useSkillSwap() {
         return m.rating >= 4.0; 
       })
       .map(person => {
-        const iCanTeachThem = mySkills.some(s => person.needs.toLowerCase().includes(s.toLowerCase()));
-        const theyCanTeachMe = myNeeds.some(n => person.teaching.toLowerCase().includes(n.toLowerCase()));
+        // Prepare my arrays
+        const mySkillsLower = mySkills.map(s => s.toLowerCase());
+        const myNeedsLower = myNeeds.map(n => n.toLowerCase());
+
+        // Prepare their arrays 
+        const getArr = (str: string) => str ? str.split(',').map(s => s.trim().toLowerCase()) : [];
+        const personTeach = getArr(person.teaching);
+        const personNeeds = getArr(person.needs);
+
+        // Exact mutual checking (My skill inside their needs array)
+        const iCanTeachThem = mySkillsLower.some(s => personNeeds.includes(s));
+        const theyCanTeachMe = myNeedsLower.some(n => personTeach.includes(n));
         const isMutualMatch = iCanTeachThem && theyCanTeachMe;
 
         let isCircularMatch = false;
         if (!isMutualMatch && (iCanTeachThem || theyCanTeachMe)) {
-          isCircularMatch = allMatches.some(userC => {
-            if (userC.id === person.id || blockedUsers.includes(userC.id) || reportedUsers.includes(userC.id)) return false;
-            const personCanTeachC = userC.needs.toLowerCase().includes(person.teaching.toLowerCase());
-            const cCanTeachMe = myNeeds.some(n => userC.teaching.toLowerCase().includes(n.toLowerCase()));
-            if (iCanTeachThem && personCanTeachC && cCanTeachMe) return true;
-            const iCanTeachC = mySkills.some(s => userC.needs.toLowerCase().includes(s.toLowerCase()));
-            const cCanTeachPerson = person.needs.toLowerCase().includes(userC.teaching.toLowerCase());
-            if (theyCanTeachMe && cCanTeachPerson && iCanTeachC) return true;
-            return false;
-          });
+            isCircularMatch = allMatches.some(userC => {
+                if (userC.id === person.id || blockedUsers.includes(userC.id) || reportedUsers.includes(userC.id)) return false;
+
+                const cTeach = getArr(userC.teaching);
+                const cNeeds = getArr(userC.needs);
+
+                // Scenario 1: I teach Person -> Person teaches C -> C teaches Me
+                const personCanTeachC = personTeach.some(t => cNeeds.includes(t));
+                const cCanTeachMe = myNeedsLower.some(n => cTeach.includes(n));
+
+                if (iCanTeachThem && personCanTeachC && cCanTeachMe) return true;
+
+                // Scenario 2: They teach Me -> C teaches Them -> I teach C
+                const iCanTeachC = mySkillsLower.some(s => cNeeds.includes(s));
+                const cCanTeachPerson = cTeach.some(t => personNeeds.includes(t));
+
+                if (theyCanTeachMe && cCanTeachPerson && iCanTeachC) return true;
+
+                return false;
+            });
         }
 
         let score = 0;

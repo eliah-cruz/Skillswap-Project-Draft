@@ -641,17 +641,28 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             <div>
                               <p className="text-[10px] md:text-[11px] font-black text-slate-600">{user.name}</p>
                               {isReported ? (
-                                <span className="text-[7px] md:text-[8px] text-red-500 font-extrabold uppercase tracking-widest block mt-0.5">Reported (Pending)</span>
+                                <span className="text-[7px] md:text-[8px] text-red-500 font-extrabold uppercase tracking-widest block mt-0.5">Reported (Locked)</span>
                               ) : (
                                 <span className="text-[7px] md:text-[8px] text-slate-400 font-extrabold uppercase tracking-widest block mt-0.5">Blocked by you</span>
                               )}
                             </div>
                           </div>
                           
-                          {/* Static Lock Icon - Users CANNOT unblock manually */}
-                          <div className="p-1.5 md:p-2 bg-slate-100 text-slate-400 rounded-md md:rounded-lg border border-slate-200" title="Locked: Only Admins can reverse this action">
-                            <Lock size={12} className="md:w-3.5 md:h-3.5" />
-                          </div>
+                          {/* Right side icon/button */}
+                          {isReported ? (
+                            <div className="p-1.5 md:p-2 bg-slate-100 text-slate-400 rounded-md md:rounded-lg border border-slate-200" title="Locked: Safety Review">
+                              <Lock size={12} className="md:w-3.5 md:h-3.5" />
+                            </div>
+                          ) : (
+                            <button 
+                              type="button"
+                              onClick={() => actions.unblockUser(user.id)}
+                              className="p-1.5 md:p-2 bg-slate-100 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md md:rounded-lg border border-slate-200 cursor-pointer transition-colors" 
+                              title="Unblock User"
+                            >
+                              <Unlock size={12} className="md:w-3.5 md:h-3.5" />
+                            </button>
+                          )}
                         </div>
                       );
                     })

@@ -353,7 +353,7 @@ export function useSkillSwap() {
         supabase.from('teachable_skills').select('skills(skill_name)').eq('user_id', uid),
         supabase.from('desired_skills').select('skills(skill_name)').eq('user_id', uid),
         supabase.from('blocks').select('blocked_id').eq('blocker_id', uid),
-        supabase.from('reports').select('reported_id').eq('reporter_id', uid).in('status', ['Pending', 'Reviewed']),
+        supabase.from('reports').select('reported_id').eq('reporter_id', uid).neq('status', 'Dismissed'), // Fixes Admin Unblock Bug
         supabase.from('messages').select('message_id, sender_id').eq('is_read', false).neq('sender_id', uid),
         supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`),
         supabase.from('users').select(`*, teachable_skills(skills(skill_name)), desired_skills(skills(skill_name))`).neq('user_id', uid).neq('email', ADMIN_EMAIL),
@@ -943,7 +943,6 @@ export function useSkillSwap() {
     }
   };
 
-  // HIGHLY ACCURATE MATCHING ENGINE (Fixes Circular Matching Bug)
   const filteredMatches = useMemo(() => {
     let scoredResults = allMatches
       .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
@@ -953,16 +952,13 @@ export function useSkillSwap() {
         return m.rating >= 4.0; 
       })
       .map(person => {
-        // Prepare my arrays
         const mySkillsLower = mySkills.map(s => s.toLowerCase());
         const myNeedsLower = myNeeds.map(n => n.toLowerCase());
 
-        // Prepare their arrays 
         const getArr = (str: string) => str ? str.split(',').map(s => s.trim().toLowerCase()) : [];
         const personTeach = getArr(person.teaching);
         const personNeeds = getArr(person.needs);
 
-        // Exact mutual checking (My skill inside their needs array)
         const iCanTeachThem = mySkillsLower.some(s => personNeeds.includes(s));
         const theyCanTeachMe = myNeedsLower.some(n => personTeach.includes(n));
         const isMutualMatch = iCanTeachThem && theyCanTeachMe;
@@ -975,13 +971,11 @@ export function useSkillSwap() {
                 const cTeach = getArr(userC.teaching);
                 const cNeeds = getArr(userC.needs);
 
-                // Scenario 1: I teach Person -> Person teaches C -> C teaches Me
                 const personCanTeachC = personTeach.some(t => cNeeds.includes(t));
                 const cCanTeachMe = myNeedsLower.some(n => cTeach.includes(n));
 
                 if (iCanTeachThem && personCanTeachC && cCanTeachMe) return true;
 
-                // Scenario 2: They teach Me -> C teaches Them -> I teach C
                 const iCanTeachC = mySkillsLower.some(s => cNeeds.includes(s));
                 const cCanTeachPerson = cTeach.some(t => personNeeds.includes(t));
 

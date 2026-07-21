@@ -9,7 +9,7 @@ export default function Header({ state, setters, actions }: any) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMessageMenu, setShowMessageMenu] = useState(false);
 
-  const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
+  const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
   const isAdmin = state.userEmail === ADMIN_EMAIL;
 
   const handleSelectChat = (user: any) => {

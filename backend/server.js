@@ -21,7 +21,7 @@ const io = new Server(server, {
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 // Optional Google OAuth2 credentials setup for Gmail notifications
 let gmail = null;

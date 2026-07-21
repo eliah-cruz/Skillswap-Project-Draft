@@ -43,7 +43,7 @@ export function useSkillSwap() {
   const [myRating, setMyRating] = useState<number>(5.0);
   const [myReviewCount, setMyReviewCount] = useState<number>(0);
 
-  const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "skillswapproductions@gmail.com";
+  const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
   // Strict verification: user must configure both teachable and desired skills to proceed
   const hasSkillsConfigured = useMemo(() => {

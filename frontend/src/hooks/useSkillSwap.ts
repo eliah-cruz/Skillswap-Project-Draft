@@ -1,5 +1,3 @@
-// src/hooks/useSkillSwap.ts
-
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../lib/supabase";
@@ -108,6 +106,24 @@ export function useSkillSwap() {
     const handleScroll = () => setShowScroll(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
 
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsLoggedIn(true);
+        setUserId(session.user.id);
+        setUserEmail(session.user.email || "");
+        
+        const s = getSocket();
+        if (s) s.emit("register_user", session.user.id);
+        
+        await loadFullDatabaseState(session.user.id, session.user.email || "", session.user, true);
+        loadedUserIdRef.current = session.user.id;
+        setLoading(false);
+      }
+    };
+    
+    checkSession(); // Fast initial session check
+
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
         const isSameUser = loadedUserIdRef.current === session.user.id;
@@ -171,7 +187,6 @@ export function useSkillSwap() {
     const s = getSocket();
     if (!s || !userId) return;
 
-    // Fix: Re-sync unread counts when the mobile phone wakes up from sleep and reconnects
     s.on("connect", async () => {
       if (userId) {
         const { data: unreadMsgs } = await supabase
@@ -230,7 +245,6 @@ export function useSkillSwap() {
         [data.sender_id]: [newMsg]
       }));
 
-      // Fix: Instantly add brand new people to the chat menu
       setActiveChatIDs(prev => {
         if (!prev.includes(data.sender_id)) {
           return [...prev, data.sender_id];
@@ -321,7 +335,33 @@ export function useSkillSwap() {
   const loadFullDatabaseState = async (uid: string, email: string, authUser?: any, silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const { data: dbSkills } = await supabase.from('skills').select('*, skill_categories(category_name)');
+      // MASSIVE PERFORMANCE BOOST: Parallelizing all independent database queries.
+      const [
+        { data: dbSkills },
+        { data: user },
+        { data: settings },
+        { data: teachable },
+        { data: desired },
+        { data: blocks },
+        { data: userReports },
+        { data: unreadMsgs },
+        { data: matches },
+        { data: otherUsers },
+        { data: rawReviews }
+      ] = await Promise.all([
+        supabase.from('skills').select('*, skill_categories(category_name)'),
+        supabase.from('users').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('user_settings').select('*').eq('user_id', uid).maybeSingle(),
+        supabase.from('teachable_skills').select('skills(skill_name)').eq('user_id', uid),
+        supabase.from('desired_skills').select('skills(skill_name)').eq('user_id', uid),
+        supabase.from('blocks').select('blocked_id').eq('blocker_id', uid),
+        supabase.from('reports').select('reported_id').eq('reporter_id', uid).in('status', ['Pending', 'Reviewed']),
+        supabase.from('messages').select('message_id, sender_id').eq('is_read', false).neq('sender_id', uid),
+        supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`),
+        supabase.from('users').select(`*, teachable_skills(skills(skill_name)), desired_skills(skills(skill_name))`).neq('user_id', uid).neq('email', ADMIN_EMAIL),
+        supabase.from('reviews').select('*, users!reviews_reviewer_id_fkey(username)')
+      ]);
+
       const skillMap: Record<string, string> = {};
       const categoryMap: Record<string, string> = {};
       if (dbSkills) {
@@ -333,7 +373,6 @@ export function useSkillSwap() {
       setSkillDictionary(skillMap);
       setSkillCategoryMap(categoryMap);
 
-      const { data: user } = await supabase.from('users').select('*').eq('user_id', uid).maybeSingle();
       if (!user) {
         const metaName = authUser?.user_metadata?.username || "New User";
         await supabase.from('users').insert([{ 
@@ -363,7 +402,6 @@ export function useSkillSwap() {
         setShowBioStep(false);
       }
 
-      const { data: settings } = await supabase.from('user_settings').select('*').eq('user_id', uid).maybeSingle();
       if(settings) {
           setUserSettings({
               emailNotifications: settings.email_notifications,
@@ -372,29 +410,14 @@ export function useSkillSwap() {
           });
       }
 
-      const { data: teachable } = await supabase.from('teachable_skills').select('skills(skill_name)').eq('user_id', uid);
-      const { data: desired } = await supabase.from('desired_skills').select('skills(skill_name)').eq('user_id', uid);
       if (teachable) setMySkills(teachable.map((t: any) => t.skills.skill_name));
       if (desired) setMyNeeds(desired.map((d: any) => d.skills.skill_name));
 
-      const { data: blocks } = await supabase.from('blocks').select('blocked_id').eq('blocker_id', uid);
       const blockedList = blocks ? blocks.map(b => b.blocked_id) : [];
       setBlockedUsers(blockedList);
 
-      const { data: userReports } = await supabase
-        .from('reports')
-        .select('reported_id')
-        .eq('reporter_id', uid)
-        .in('status', ['Pending', 'Reviewed']);
-      
       const reportedList = userReports ? userReports.map(r => r.reported_id) : [];
       setReportedUsers(reportedList);
-
-      const { data: unreadMsgs } = await supabase
-        .from('messages')
-        .select('message_id, sender_id')
-        .eq('is_read', false)
-        .neq('sender_id', uid);
       
       let totalUnread = 0;
       const counts: Record<string, number> = {};
@@ -407,13 +430,13 @@ export function useSkillSwap() {
       setUnreadCount(totalUnread);
       setUnreadCounts(counts);
 
-      const { data: matches } = await supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`);
-      if (matches) {
+      // Fetch match chat history completely in parallel for extreme speedup
+      if (matches && matches.length > 0) {
           const chatPartnerIds = matches.map(m => m.mentor_id === uid ? m.student_id : m.mentor_id);
           setActiveChatIDs(chatPartnerIds);
 
           const historyMap: Record<string, Message[]> = {};
-          for (const match of matches) {
+          await Promise.all(matches.map(async (match) => {
               const { data: lastMsgs } = await supabase
                   .from('messages')
                   .select('*')
@@ -435,20 +458,10 @@ export function useSkillSwap() {
                       fileName: m.file_name
                   }];
               }
-          }
+          }));
           setChatHistory(historyMap);
       }
 
-      const { data: otherUsers } = await supabase.from('users').select(`
-        *,
-        teachable_skills(skills(skill_name)),
-        desired_skills(skills(skill_name))
-      `).neq('user_id', uid)
-        .neq('email', ADMIN_EMAIL);
-
-      const { data: rawReviews } = await supabase
-        .from('reviews')
-        .select('*, users!reviews_reviewer_id_fkey(username)');
       const dbReviews = (rawReviews || []) as any[];
       
       if (otherUsers) {
@@ -616,6 +629,7 @@ export function useSkillSwap() {
     const merged = { ...userProfile, ...newData };
     const nameToSave = newData.name !== undefined ? newData.name : userName;
     
+    // Instantly sync the profile across all active components avoiding flashes
     setUserProfile({
       bio: merged.bio || "", 
       title: merged.title || "SkillSwapper", 
@@ -630,6 +644,7 @@ export function useSkillSwap() {
       triggerToast("Profile updated successfully!");
     }
     
+    // Asynchronous backend push (UI doesn't wait)
     await supabase.from('users').update({
         username: nameToSave,
         bio: merged.bio, 
@@ -687,7 +702,6 @@ export function useSkillSwap() {
     
     setCurrentMatchId(mId);
 
-    // Instant Chat Feed Hydration (preview cache to eliminate perceived delay)
     const previewLastMsg = chatHistory[partner.id]?.[0];
     if (previewLastMsg) {
       setMessages([previewLastMsg]);
@@ -716,7 +730,6 @@ export function useSkillSwap() {
         })));
     }
 
-    // Recalculate global and individual unread counts
     if (userId) {
       const { data: unreadMsgs } = await supabase
         .from('messages')
@@ -784,7 +797,6 @@ export function useSkillSwap() {
   const deleteConversation = async (partnerId: string) => {
     if(!userId) return;
     
-    // Exact SQL targeted execution (repaired logical condition check)
     const { error } = await supabase
       .from('matches')
       .delete()
@@ -941,11 +953,7 @@ export function useSkillSwap() {
       .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
-        
-        // 1. If actively typing in the search bar, show everyone (gives them a chance)
         if (isSearching) return true; 
-        
-        // 2. If NOT searching (just browsing "All" or Categories), strictly HIDE anyone below 4.0
         return m.rating >= 4.0; 
       })
       .map(person => {
@@ -953,7 +961,6 @@ export function useSkillSwap() {
         const theyCanTeachMe = myNeeds.some(n => person.teaching.toLowerCase().includes(n.toLowerCase()));
         const isMutualMatch = iCanTeachThem && theyCanTeachMe;
 
-        // 3-Way Graph Circular Match Engine
         let isCircularMatch = false;
         if (!isMutualMatch && (iCanTeachThem || theyCanTeachMe)) {
           isCircularMatch = allMatches.some(userC => {

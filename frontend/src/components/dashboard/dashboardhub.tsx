@@ -20,12 +20,12 @@ export default function DashboardHub({ state, setters, actions }: any) {
   const [reportReason, setReportReason] = useState("Spam");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const cardsPerPage = 4; 
+  const cardsPerPage = 6; 
 
   const [reviewPage, setReviewPage] = useState(1);
   const reviewsPerPage = 2;
 
-  const [showHoursTooltip, setShowHoursTooltip] = useState(false); // NEW: Tracks manual tooltip click/tap state
+  const [showHoursTooltip, setShowHoursTooltip] = useState(false);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -42,7 +42,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
     setReviewPage(1);
   }, [activeReviewsMember]);
 
-  // Fix: Click anywhere on the screen closes the tooltip on touch devices/mobile/TVs
   useEffect(() => {
     const handleGlobalClick = () => {
       setShowHoursTooltip(false);
@@ -53,7 +52,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
     };
   }, []);
 
-  // Fix: Prevent dashboard background from scrolling when the Report or Reviews modal is active
   useEffect(() => {
     if (showReportModal || activeReviewsMember) {
       document.body.style.overflow = 'hidden';
@@ -123,8 +121,8 @@ export default function DashboardHub({ state, setters, actions }: any) {
           50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.5); border-color: rgba(245, 158, 11, 0.7); }
         }
         @keyframes matchParticles {
-          0% { transform: scale(0.95); filter: brightness(1); }
-          50% { transform: scale(1.02); filter: brightness(1.05); }
+          0% { transform: scale(0.98); filter: brightness(1); }
+          50% { transform: scale(1.01); filter: brightness(1.05); }
           100% { transform: scale(1); filter: brightness(1); }
         }
         @keyframes newMemberPulse {
@@ -218,7 +216,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
             </div>
           ) : paginatedMatches.length > 0 ? (
             <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 md:gap-6 items-start">
                 {paginatedMatches.map((m: any) => {
                   const isNewMember = m.reviewCount === 0;
                   const isLowRated = m.rating < 4.0 && m.reviewCount > 0;
@@ -261,169 +259,161 @@ export default function DashboardHub({ state, setters, actions }: any) {
                   }
 
                   const safeBio = m.bio 
-                    ? (m.bio.split(' ').length > 15 
-                        ? `${m.bio.split(' ').slice(0, 15).join(' ')}...` 
-                        : m.bio)
+                    ? m.bio
                     : `Passionate about sharing my knowledge in ${m.teaching ? m.teaching.split(',')[0] : 'Various Skills'} and learning ${m.needs ? m.needs.split(',')[0] : 'Eager to learn'}.`;
                   
                   return (
-                  <div key={m.id} className={`bg-white rounded-[2.5rem] md:rounded-[3rem] border-2 shadow-sm hover:shadow-xl transition-all group flex flex-col overflow-hidden ${cardBorderClass} ${cardBgClass} ${cardGlowEffect}`}>
+                  <div key={m.id} className={`rounded-[2rem] md:rounded-[2.5rem] border-2 shadow-sm hover:shadow-xl transition-all group flex flex-col overflow-hidden ${cardBorderClass} ${cardBgClass} ${cardGlowEffect}`}>
                     
                     {isLowRated ? (
-                      <div className="w-full bg-red-500 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest py-2.5 md:py-3 text-center flex items-center justify-center gap-2 shadow-sm relative z-20">
+                      <div className="w-full bg-red-500 text-white text-[9px] md:text-[10px] font-black uppercase tracking-widest py-2.5 text-center flex items-center justify-center gap-2 shadow-sm relative z-20">
                         <AlertTriangle size={14} strokeWidth={3} /> Low Rating Warning
                       </div>
                     ) : state.sortBy === "Recommended" && m.isMutualMatch ? (
-                      <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2.5 md:py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                      <div className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Flame size={14} className="fill-white" /> Mutual Match
                       </div>
                     ) : state.sortBy === "Recommended" && m.isCircularMatch ? (
-                      <div className="w-full bg-gradient-to-r from-teal-400 to-emerald-500 text-white py-2.5 md:py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                      <div className="w-full bg-gradient-to-r from-teal-400 to-emerald-500 text-white py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Repeat size={14} className="text-white" /> Circular Match
                       </div>
                     ) : state.sortBy === "Recommended" && m.matchScore && m.matchScore > 20 ? (
-                      <div className="w-full bg-indigo-600 text-white py-2.5 md:py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                      <div className="w-full bg-indigo-600 text-white py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Heart size={14} className="fill-white animate-pulse" /> {Math.min(Math.round(m.matchScore), 99)}% Recommended Match
                       </div>
                     ) : state.sortBy === "Top Rated" && isHighRated ? (
-                      <div className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 py-2.5 md:py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                      <div className="w-full bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Star size={14} className="fill-amber-950 text-amber-950 animate-bounce" /> Highly Rated Educator
                       </div>
                     ) : state.sortBy === "Newest" && isNewMember ? (
-                      <div className="w-full bg-emerald-500 text-white py-2.5 md:py-3 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
+                      <div className="w-full bg-emerald-500 text-white py-2.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center justify-center gap-2 relative z-20">
                         <Sparkles size={14} className="fill-white" /> Fresh Joiner 🌱
                       </div>
                     ) : null}
 
-                    {/* Card Body */}
-                    <div className="p-6 md:p-8 flex-1 flex flex-col relative text-left">
+                    {/* Highly Compact Card Body */}
+                    <div className="p-4 md:p-6 flex-1 flex flex-col relative text-left">
                       
                       {/* Desktop Badge */}
-                      <div className="hidden sm:block absolute top-6 right-6 md:top-8 md:right-8 bg-indigo-50 text-indigo-700 px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm z-20">
+                      <div className="hidden sm:block absolute top-6 right-6 md:top-6 md:right-6 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm z-20">
                         {m.category}
                       </div>
 
                       <div className="relative z-10 flex-1">
                         
-                        <div className="flex gap-4 md:gap-5 mb-2 sm:pr-24">
+                        <div className="flex gap-3 md:gap-4 mb-3 sm:pr-24 items-start">
                             <div className="relative shrink-0">
-                                <div className={`w-16 h-16 md:w-20 md:h-20 rounded-[1.8rem] md:rounded-[2rem] flex items-center justify-center font-black text-xl md:text-2xl shadow-inner border-[3px] border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
+                                <div className={`w-14 h-14 md:w-16 md:h-16 rounded-[1.4rem] md:rounded-[1.6rem] flex items-center justify-center font-black text-xl shadow-inner border-[3px] border-white overflow-hidden ${isLowRated ? 'bg-red-50 text-red-600 shadow-red-100' : isHighRated ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-slate-100 text-indigo-600 shadow-indigo-100'}`}>
                                     {m.image ? <img src={m.image} className="w-full h-full object-cover" alt="" /> : <span className="uppercase">{m.avatar || m.name.substring(0,2)}</span>}
                                 </div>
                             </div>
                             
-                            <div className="min-w-0 flex-1 pt-1 text-left">
-                                <h4 className="text-base md:text-xl font-black text-slate-900 truncate flex items-center gap-1.5 md:gap-2 mb-1">
-                                    {m.name} {m.isVerified && <UserCheck size={16} className="text-indigo-500 shrink-0 md:w-[18px] md:h-[18px]" />}
+                            <div className="min-w-0 flex-1 pt-0.5 text-left">
+                                <h4 className="text-[15px] md:text-lg font-black text-slate-900 truncate flex items-center gap-1.5 mb-1">
+                                    {m.name} {m.isVerified && <UserCheck size={14} className="text-indigo-500 shrink-0" />}
                                 </h4>
                                 
                                 {/* Mobile Category Badge */}
-                                <div className="sm:hidden inline-block bg-indigo-50 text-indigo-700 px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm mb-1.5">
+                                <div className="sm:hidden inline-block bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm mb-1.5">
                                   {m.category}
                                 </div>
 
-                                <div className="flex items-center gap-1.5 md:gap-2 mb-3 md:mb-4">
-                                    <span className={`w-2 h-2 md:w-2.5 md:h-2.5 rounded-full shadow-sm border border-white shrink-0 ${m.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
-                                    <p className="text-[11px] md:text-xs font-bold text-slate-500 truncate">{m.status} • {m.title}</p>
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <span className={`w-2 h-2 rounded-full shadow-sm border border-white shrink-0 ${m.status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                                    <p className="text-[10px] md:text-[11px] font-bold text-slate-500 truncate">{m.status} • {m.title}</p>
                                 </div>
+                            </div>
+                        </div>
 
-                                <div className="flex flex-wrap gap-x-1.5 md:gap-x-2 gap-y-2">
-                                    <button 
-                                      type="button"
-                                      onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        if (m.reviewCount > 0) setActiveReviewsMember(m); 
-                                      }} 
-                                      className={`flex items-center gap-1 px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-[11px] font-black border transition-all ${m.reviewCount === 0 ? 'bg-slate-50 text-slate-500 border-slate-200 cursor-default' : isLowRated ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 cursor-pointer hover:scale-105' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer hover:scale-105'}`}
-                                    >
-                                        {m.reviewCount === 0 ? (
-                                          <><Sparkles size={10} className="text-emerald-500" /> New</>
-                                        ) : (
-                                          <>{isLowRated ? <AlertTriangle size={10} className="text-red-500" /> : <Star size={10} className="fill-amber-400 text-amber-400" />} {m.rating} ({m.reviewCount})</>
-                                        )}
-                                    </button>
-                                    
-                                    <div className="text-[9px] md:text-[10px] font-black uppercase text-slate-500 tracking-wider px-2.5 md:px-3 py-1 md:py-1.5 bg-slate-50 rounded-lg md:rounded-xl border border-slate-200 shadow-sm">
-                                      {m.availability}
-                                    </div>
+                        {/* Ultra-compact Tags Row */}
+                        <div className="flex flex-wrap gap-x-1.5 gap-y-1.5 mb-3 md:mb-4">
+                            <button 
+                              type="button"
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (m.reviewCount > 0) setActiveReviewsMember(m); 
+                              }} 
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] md:text-[10px] font-black border transition-all ${m.reviewCount === 0 ? 'bg-slate-50 text-slate-500 border-slate-200 cursor-default' : isLowRated ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100 cursor-pointer hover:scale-105' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 cursor-pointer hover:scale-105'}`}
+                            >
+                                {m.reviewCount === 0 ? (
+                                  <><Sparkles size={10} className="text-emerald-500" /> New</>
+                                ) : (
+                                  <>{isLowRated ? <AlertTriangle size={10} className="text-red-500" /> : <Star size={10} className="fill-amber-400 text-amber-400" />} {m.rating} ({m.reviewCount})</>
+                                )}
+                            </button>
+                            
+                            {m.location && (
+                              <div className="text-[9px] md:text-[10px] font-black uppercase text-slate-500 tracking-wider px-2 py-1 bg-slate-50 rounded-lg border border-slate-200 flex items-center gap-1 shadow-sm">
+                                <MapPin size={10} className="text-slate-400" /> {m.location}
+                              </div>
+                            )}
 
-                                    {m.experienceLevel && (
-                                      <div className="text-[9px] md:text-[10px] font-black uppercase text-indigo-700 tracking-wider px-2.5 md:px-3 py-1 md:py-1.5 bg-indigo-50 rounded-lg md:rounded-xl border border-indigo-100 flex items-center gap-1 shadow-sm">
-                                        <GraduationCap size={10} className="text-indigo-500" /> {m.experienceLevel}
-                                      </div>
-                                    )}
+                            <div className="text-[9px] md:text-[10px] font-black uppercase text-slate-500 tracking-wider px-2 py-1 bg-slate-50 rounded-lg border border-slate-200 shadow-sm">
+                              {m.availability}
+                            </div>
 
-                                    <div className="text-[9px] md:text-[10px] font-black uppercase text-amber-700 tracking-wider px-2.5 md:px-3 py-1 md:py-1.5 bg-amber-50 rounded-lg md:rounded-xl border border-amber-200 flex items-center gap-1 shadow-sm">
-                                      <Coins size={10} className="fill-amber-500 text-amber-500" /> {m.hoursBalance ?? 3} HR
-                                    </div>
-                                </div>
+                            {m.experienceLevel && (
+                              <div className="text-[9px] md:text-[10px] font-black uppercase text-indigo-700 tracking-wider px-2 py-1 bg-indigo-50 rounded-lg border border-indigo-100 flex items-center gap-1 shadow-sm">
+                                <GraduationCap size={10} className="text-indigo-500" /> {m.experienceLevel}
+                              </div>
+                            )}
+
+                            <div className="text-[9px] md:text-[10px] font-black uppercase text-amber-700 tracking-wider px-2 py-1 bg-amber-50 rounded-lg border border-amber-200 flex items-center gap-1 shadow-sm">
+                              <Coins size={10} className="fill-amber-500 text-amber-500" /> {m.hoursBalance ?? 3} HR
                             </div>
                         </div>
 
                         {isNewMember && (
-                          <div className="mt-3 md:mt-4 mb-3 md:mb-4 bg-emerald-50/50 border border-emerald-100 rounded-[1rem] md:rounded-2xl p-3 md:p-4 flex items-start gap-2.5 md:gap-3">
+                          <div className="mb-3 bg-emerald-50/50 border border-emerald-100 rounded-xl p-3 flex items-start gap-2">
                             <ShieldAlert className="text-emerald-600 shrink-0 mt-0.5" size={14} />
                             <div>
-                              <p className="text-[8px] md:text-[9px] font-black uppercase tracking-wider text-emerald-800">Fresh Member Advisory</p>
-                              <p className="text-[10px] md:text-[11px] text-emerald-700 font-medium leading-relaxed mt-0.5">This member joined recently and has no ratings yet. Always conduct sessions safely.</p>
+                              <p className="text-[8px] font-black uppercase tracking-wider text-emerald-800">Fresh Member Advisory</p>
+                              <p className="text-[9px] text-emerald-700 font-medium mt-0.5">Joined recently, no ratings yet. Conduct sessions safely.</p>
                             </div>
                           </div>
                         )}
 
-                        <div className="mt-4 md:mt-6 mb-4 md:mb-6 px-2 border-l-[3px] border-slate-200">
-                          <p className="text-xs md:text-[13px] text-slate-500 italic leading-relaxed line-clamp-3 pl-2.5 md:pl-3">"{safeBio}"</p>
+                        <div className="mb-4 px-2 border-l-[3px] border-slate-200">
+                          <p className="text-[11px] md:text-xs text-slate-500 italic leading-relaxed line-clamp-2 md:group-hover:line-clamp-none transition-all duration-300 pl-2">"{safeBio}"</p>
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-4">
-                            <div className={`flex-1 p-3 md:p-4 rounded-[1.2rem] md:rounded-[1.5rem] border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
-                                <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5 relative z-10 ${isLowRated ? 'text-red-600' : 'text-indigo-600'}`}><BookOpen size={12} /> Will Teach</p>
-                                <p className="text-xs md:text-[14px] font-bold text-slate-900 relative z-10 leading-snug">{m.teaching}</p>
+                        {/* Compact Teaching / Learning layout */}
+                        <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
+                            <div className={`flex-1 p-2.5 md:p-3 rounded-xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
+                                <p className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : 'text-indigo-600'}`}><BookOpen size={10} /> Will Teach</p>
+                                <p className="text-[11px] md:text-xs font-bold text-slate-900 relative z-10 leading-snug line-clamp-2" title={m.teaching}>{m.teaching}</p>
                             </div>
-                            <div className={`flex-1 p-3 md:p-4 rounded-[1.2rem] md:rounded-[1.5rem] border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-emerald-50/70 border-emerald-300' : 'bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-100/50'}`}>
-                                <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5 relative z-10 ${isLowRated ? 'text-red-600' : 'text-emerald-600'}`}><Sparkles size={12} /> Wants to Learn</p>
-                                <p className="text-xs md:text-[14px] font-bold text-emerald-950 relative z-10 leading-snug">{m.needs}</p>
+                            <div className={`flex-1 p-2.5 md:p-3 rounded-xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-emerald-50/70 border-emerald-300' : 'bg-emerald-50/50 border-emerald-100 group-hover:bg-emerald-100/50'}`}>
+                                <p className={`text-[8px] md:text-[9px] font-black uppercase tracking-widest mb-1 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : 'text-emerald-600'}`}><Sparkles size={10} /> Wants to Learn</p>
+                                <p className="text-[11px] md:text-xs font-bold text-emerald-950 relative z-10 leading-snug line-clamp-2" title={m.needs}>{m.needs}</p>
                             </div>
                         </div>
 
                         {m.isCircularMatch && (
-                          <div className="mt-3 md:mt-4 mb-3 md:mb-4 p-3 md:p-4 bg-teal-50/70 border border-teal-200 rounded-xl md:rounded-2xl text-left animate-in slide-in-from-top-2 duration-300 overflow-x-auto no-scrollbar">
-                            <p className="text-[9px] md:text-[10px] font-black uppercase text-teal-800 tracking-wider mb-2.5 md:mb-3 flex items-center gap-1.5">
+                          <div className="mb-4 p-3 bg-teal-50/70 border border-teal-200 rounded-xl text-left animate-in slide-in-from-top-2 duration-300 overflow-x-auto no-scrollbar hidden md:group-hover:block">
+                            <p className="text-[9px] font-black uppercase text-teal-800 tracking-wider mb-2 flex items-center gap-1.5">
                               <Repeat size={12} className="text-teal-600" /> 3-Way Exchange Loop Detected
                             </p>
                             
                             <div className="flex items-center justify-between text-center gap-1 min-w-[200px]">
                               <div className="flex flex-col items-center">
-                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-slate-900 text-white flex items-center justify-center text-[9px] md:text-[10px] font-black">
-                                  YOU
-                                </div>
-                                <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase mt-1">Teaches</span>
+                                <div className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-[9px] font-black">YOU</div>
+                                <span className="text-[7px] font-black text-slate-400 uppercase mt-1">Teaches</span>
                               </div>
-
-                              <ArrowRight size={12} className="text-teal-400" />
-
+                              <ArrowRight size={10} className="text-teal-400" />
                               <div className="flex flex-col items-center">
-                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-teal-600 text-white flex items-center justify-center text-[9px] md:text-[10px] font-black uppercase">
-                                  {m.name.substring(0, 2)}
-                                </div>
-                                <span className="text-[7px] md:text-[8px] font-black text-teal-600 uppercase mt-1">{m.name.split(' ')[0]}</span>
+                                <div className="w-6 h-6 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[9px] font-black uppercase">{m.name.substring(0, 2)}</div>
+                                <span className="text-[7px] font-black text-teal-600 uppercase mt-1">{m.name.split(' ')[0]}</span>
                               </div>
-
-                              <ArrowRight size={12} className="text-teal-400" />
-
+                              <ArrowRight size={10} className="text-teal-400" />
                               <div className="flex flex-col items-center">
-                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-sm font-black">
-                                  ?
-                                </div>
-                                <span className="text-[7px] md:text-[8px] font-black text-indigo-500 uppercase mt-1">Peer C</span>
+                                <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-sm font-black">?</div>
+                                <span className="text-[7px] font-black text-indigo-500 uppercase mt-1">Peer C</span>
                               </div>
-
-                              <ArrowRight size={12} className="text-teal-400" />
-
+                              <ArrowRight size={10} className="text-teal-400" />
                               <div className="flex flex-col items-center">
-                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-slate-900 text-white flex items-center justify-center text-[9px] md:text-[10px] font-black">
-                                  YOU
-                                </div>
-                                <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase mt-1">Learns</span>
+                                <div className="w-6 h-6 rounded-lg bg-slate-900 text-white flex items-center justify-center text-[9px] font-black">YOU</div>
+                                <span className="text-[7px] font-black text-slate-400 uppercase mt-1">Learns</span>
                               </div>
                             </div>
                           </div>
@@ -431,18 +421,18 @@ export default function DashboardHub({ state, setters, actions }: any) {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex gap-2.5 md:gap-3 mt-auto relative z-10 pt-2">
-                        <button type="button" onClick={() => goToChat(m)} className={`flex-1 cursor-pointer text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 md:gap-2 shadow-xl ${isLowRated ? 'bg-red-600 hover:bg-slate-900' : 'bg-slate-900 hover:bg-indigo-600'}`}>
-                            <MessageSquare size={14} className="md:w-4 md:h-4" /> Message
+                      <div className="flex gap-2.5 mt-auto relative z-10 pt-1">
+                        <button type="button" onClick={() => goToChat(m)} className={`flex-1 cursor-pointer text-white py-3 rounded-xl font-black text-[10px] md:text-[11px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xl ${isLowRated ? 'bg-red-600 hover:bg-slate-900' : 'bg-slate-900 hover:bg-indigo-600'}`}>
+                            <MessageSquare size={14} /> Message
                         </button>
                         
                         <button 
                           type="button"
                           onClick={() => handleOpenReport(m)}
-                          className="cursor-pointer bg-red-50 text-red-400 hover:text-white hover:bg-red-500 p-3 md:p-4 rounded-xl md:rounded-2xl transition-all border border-red-100 hover:border-red-500 shadow-sm flex items-center justify-center shrink-0"
+                          className="cursor-pointer bg-red-50 text-red-400 hover:text-white hover:bg-red-500 p-3 rounded-xl transition-all border border-red-100 hover:border-red-500 shadow-sm flex items-center justify-center shrink-0"
                           title="Report User"
                         >
-                          <Flag size={16} className="md:w-[18px] md:h-[18px]" />
+                          <Flag size={14} />
                         </button>
                       </div>
 

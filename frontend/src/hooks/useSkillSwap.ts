@@ -33,6 +33,7 @@ export function useSkillSwap() {
   const [skillCategoryMap, setSkillCategoryMap] = useState<Record<string, string>>({}); 
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [reportedUsers, setReportedUsers] = useState<string[]>([]); 
+  const [reportedDetails, setReportedDetails] = useState<Record<string, string>>({}); // NEW: Tracks report reasons
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [activeChatIDs, setActiveChatIDs] = useState<string[]>([]);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
@@ -353,7 +354,7 @@ export function useSkillSwap() {
         supabase.from('teachable_skills').select('skills(skill_name)').eq('user_id', uid),
         supabase.from('desired_skills').select('skills(skill_name)').eq('user_id', uid),
         supabase.from('blocks').select('blocked_id').eq('blocker_id', uid),
-        supabase.from('reports').select('reported_id').eq('reporter_id', uid).neq('status', 'Dismissed'), // Fixes Admin Unblock Bug
+        supabase.from('reports').select('reported_id, reason').eq('reporter_id', uid).neq('status', 'Dismissed'), // Fetches exact report reasons
         supabase.from('messages').select('message_id, sender_id').eq('is_read', false).neq('sender_id', uid),
         supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`),
         supabase.from('users').select(`*, teachable_skills(skills(skill_name)), desired_skills(skills(skill_name))`).neq('user_id', uid).neq('email', ADMIN_EMAIL),
@@ -416,6 +417,15 @@ export function useSkillSwap() {
 
       const reportedList = userReports ? userReports.map(r => r.reported_id) : [];
       setReportedUsers(reportedList);
+
+      // Store specific reasons in state mapping for the UI
+      const reasonsMap: Record<string, string> = {};
+      if (userReports) {
+          userReports.forEach(r => {
+              reasonsMap[r.reported_id] = r.reason;
+          });
+      }
+      setReportedDetails(reasonsMap);
       
       let totalUnread = 0;
       const counts: Record<string, number> = {};
@@ -852,6 +862,8 @@ export function useSkillSwap() {
     await supabase.from('blocks').insert([{ blocker_id: userId, blocked_id: reportedId }]);
     
     setReportedUsers(prev => [...prev, reportedId]);
+    setReportedDetails(prev => ({ ...prev, [reportedId]: reason })); // Instantly save reason to state
+
     if (!blockedUsers.includes(reportedId)) {
       setBlockedUsers(prev => [...prev, reportedId]);
     }
@@ -1030,10 +1042,10 @@ export function useSkillSwap() {
   }, [activeChatIDs, blockedUsers, reportedUsers, allMatches]);
 
   const state = { 
-    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, unreadCount, unreadCounts, isAdmin, socket: getSocket(),
+    loading, isLoggingOut, isSubmitting, isLoggedIn, isLoginView, showBioStep, userName, userEmail, showScroll, showDirectory, showChat, addingSkillType, activeTab, activeChatPartner, mySkills, myNeeds, onboardingCategory, onlineOnly, activeCategoryFilter, searchQuery, sortBy, chatInput, messages, chatHistory, isPartnerTyping, filteredMatches, activeChatUsers, blockedUsers, reportedUsers, reportedDetails, allMatches, year: new Date().getFullYear(), toast, isVerified, activeChatIDs, userProfile, userSettings, hasSkillsConfigured, hoursBalance, unreadCount, unreadCounts, isAdmin, socket: getSocket(),
     isVerifyingAuth, authStatusMessage, authSuccess, myRating, myReviewCount
   };
-  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount, setUnreadCounts, setMyRating, setMyReviewCount };
+  const setters = { setLoading, setIsLoggedIn, setIsLoggingOut, setIsLoginView, setShowBioStep, setShowDirectory, setShowChat, setActiveTab, setActiveChatPartner, setMySkills, setMyNeeds, setAddingSkillType, setOnboardingCategory, setOnlineOnly, setActiveCategoryFilter, setSearchQuery, setSortBy, setChatInput, setUserName, setUserEmail, setShowScroll, setIsPartnerTyping, setActiveChatIDs, setUserProfile, setUserSettings, setAllMatches, setHoursBalance, setUnreadCount, setUnreadCounts, setMyRating, setMyReviewCount, setReportedDetails };
   
   const actions = { 
     handleAuth, 

@@ -630,39 +630,50 @@ export default function DashboardHub({ state, setters, actions }: any) {
             {/* Blocked & Reported Users Sidebar Card */}
             <div className="bg-white p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border-2 border-indigo-50 shadow-sm text-left">
                 <h4 className="font-black text-slate-900 mb-4 md:mb-6 text-[11px] md:text-[12px] uppercase tracking-widest flex items-center gap-1.5 md:gap-2"><ShieldAlert size={14} className="text-red-500 md:w-4 md:h-4" /> Blocked Users</h4>
-                <div className="space-y-2.5 md:space-y-3">
+                
+                {/* ADDED pb-20 to allow scrolling past floating mobile buttons */}
+                <div className="space-y-2.5 md:space-y-3 pb-20">
                   {blockedList.length > 0 ? (
                     blockedList.map((user: any) => {
                       const isReported = state.reportedUsers.includes(user.id);
+                      const reportReason = state.reportedDetails?.[user.id] || "Safety Flag";
+                      
                       return (
-                        <div key={user.id} className="flex items-center justify-between p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100">
-                          <div className="flex items-center gap-2.5 md:gap-3">
-                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-200 overflow-hidden grayscale opacity-50 flex items-center justify-center font-black text-slate-400 text-xs md:text-sm">{user.image ? <img src={user.image} className="w-full h-full object-cover" alt="" /> : <span>{user.name.substring(0,1)}</span>}</div>
-                            <div>
-                              <p className="text-[10px] md:text-[11px] font-black text-slate-600">{user.name}</p>
+                        <div key={user.id} className="flex items-center justify-between p-3 md:p-4 bg-slate-50 rounded-xl md:rounded-2xl border border-slate-100 gap-2">
+                          <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-slate-200 overflow-hidden grayscale opacity-50 flex items-center justify-center font-black text-slate-400 text-xs md:text-sm shrink-0">
+                                {user.image ? <img src={user.image} className="w-full h-full object-cover" alt="" /> : <span>{user.name.substring(0,1)}</span>}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] md:text-[11px] font-black text-slate-600 truncate pr-2">{user.name}</p>
                               {isReported ? (
-                                <span className="text-[7px] md:text-[8px] text-red-500 font-extrabold uppercase tracking-widest block mt-0.5">Reported (Locked)</span>
+                                <>
+                                    <span className="text-[7px] md:text-[8px] text-red-500 font-extrabold uppercase tracking-widest block mt-0.5 truncate">Reported (Locked)</span>
+                                    <span className="text-[7px] text-slate-400 font-bold block mt-0.5 truncate">Reason: {reportReason}</span>
+                                </>
                               ) : (
-                                <span className="text-[7px] md:text-[8px] text-slate-400 font-extrabold uppercase tracking-widest block mt-0.5">Blocked by you</span>
+                                <span className="text-[7px] md:text-[8px] text-slate-400 font-extrabold uppercase tracking-widest block mt-0.5 truncate">Blocked by you</span>
                               )}
                             </div>
                           </div>
                           
-                          {/* Right side icon/button */}
-                          {isReported ? (
-                            <div className="p-1.5 md:p-2 bg-slate-100 text-slate-400 rounded-md md:rounded-lg border border-slate-200" title="Locked: Safety Review">
-                              <Lock size={12} className="md:w-3.5 md:h-3.5" />
-                            </div>
-                          ) : (
-                            <button 
-                              type="button"
-                              onClick={() => actions.unblockUser(user.id)}
-                              className="p-1.5 md:p-2 bg-slate-100 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md md:rounded-lg border border-slate-200 cursor-pointer transition-colors" 
-                              title="Unblock User"
-                            >
-                              <Unlock size={12} className="md:w-3.5 md:h-3.5" />
-                            </button>
-                          )}
+                          {/* Right side icon/button (Shrink-0 to prevent compression) */}
+                          <div className="shrink-0 relative z-10 pl-1 border-l border-slate-200/50">
+                            {isReported ? (
+                                <div className="p-1.5 md:p-2 bg-slate-100 text-slate-400 rounded-md md:rounded-lg border border-slate-200 ml-1" title="Locked: Safety Review">
+                                  <Lock size={12} className="md:w-3.5 md:h-3.5" />
+                                </div>
+                            ) : (
+                                <button 
+                                  type="button"
+                                  onClick={() => actions.unblockUser(user.id)}
+                                  className="p-1.5 md:p-2 bg-slate-100 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-md md:rounded-lg border border-slate-200 cursor-pointer transition-colors ml-1" 
+                                  title="Unblock User"
+                                >
+                                  <Unlock size={12} className="md:w-3.5 md:h-3.5" />
+                                </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })

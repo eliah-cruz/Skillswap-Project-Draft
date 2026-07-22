@@ -155,7 +155,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
             {livePartner ? (
               <>
                 <div className="relative">
-                  <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl text-white flex items-center justify-center font-black text-lg md:text-xl shadow-md md:shadow-lg overflow-hidden border-2 border-white ${livePartner.rating < 4.0 ? 'bg-red-600' : 'bg-indigo-600'}`}>
+                  <div className={`w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl text-white flex items-center justify-center font-black text-lg md:text-xl shadow-md md:shadow-lg overflow-hidden border-2 border-white ${livePartner.rating < 2.0 ? 'bg-red-600' : 'bg-indigo-600'}`}>
                     {livePartner.image ? <img src={livePartner.image} alt="" className="w-full h-full object-cover" /> : <span className="uppercase">{livePartner.avatar || "👤"}</span>}
                   </div>
                   <div className={`absolute -bottom-0.5 -right-0.5 md:-bottom-1 md:-right-1 w-3.5 h-3.5 md:w-5 md:h-5 border-[3px] md:border-4 border-white rounded-full ${livePartner.status === 'Online' ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
@@ -245,12 +245,12 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
                 </div>
             ) : (
               <>
-                {partner.rating < 4.0 ? (
+                {partner.rating < 2.0 ? (
                   <div className="bg-red-50 border-2 border-red-200 rounded-[1.5rem] md:rounded-3xl p-3 md:p-4 flex items-start gap-3 md:gap-4 mb-6 md:mb-8 text-left">
                     <div className="bg-red-500 p-1.5 md:p-2 rounded-lg md:rounded-xl text-white shrink-0"><AlertTriangle className="w-4 h-4 md:w-[18px] md:h-[18px]" /></div>
                     <div>
                       <p className="text-[10px] md:text-[11px] font-black text-red-800 uppercase tracking-wider mb-0.5 md:mb-1">Low Rating Warning</p>
-                      <p className="text-[11px] md:text-xs text-red-700 font-bold leading-relaxed">This user has an average rating below 4.0. Please exercise caution before commencing a session.</p>
+                      <p className="text-[11px] md:text-xs text-red-700 font-bold leading-relaxed">This user has an average rating below 2.0. Please exercise caution before commencing a session.</p>
                     </div>
                   </div>
                 ) : (
@@ -337,7 +337,7 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
 
       {/* MODALS */}
       
-      {/* Z-INDEX FIX: Upgraded Modals to z-[1050] to overlay the z-[1010] chat window safely */}
+      {/* Delete Conversation Modal */}
       {showDeleteModal && livePartner && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl text-left">
@@ -396,14 +396,13 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
         </div>
       )}
 
-      {/* Review Modal - WITH ALWAYS VISIBLE STARS */}
+      {/* Review Modal - LOW RATING THRESHOLD UPDATED TO 2.0 */}
       {showReviewModal && livePartner && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-md p-8 md:p-10 shadow-2xl text-left max-h-[90vh] overflow-y-auto no-scrollbar">
             <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-1.5 md:mb-2">Leave a Review</h2>
             <p className="text-xs md:text-sm font-bold text-slate-500 mb-4 md:mb-6">How was your session with {livePartner.name}?</p>
             
-            {/* The Stars are ALWAYS visible so the user can change their mind */}
             <div className="flex gap-1.5 md:gap-2 justify-center mb-6 md:mb-8">
               {[1, 2, 3, 4, 5].map(star => (
                 <button 
@@ -417,13 +416,13 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
               ))}
             </div>
 
-            {reviewRating >= 4 && state.hoursBalance <= 0 ? (
+            {reviewRating >= 2 && state.hoursBalance <= 0 ? (
               <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl md:rounded-2xl p-4 md:p-5 mb-4 md:mb-6 text-left animate-in fade-in duration-300">
                 <h4 className="font-black text-indigo-900 text-[10px] md:text-xs uppercase tracking-widest mb-1.5 md:mb-2 flex items-center gap-1.5 md:gap-2">
                   <Sparkles size={14} className="text-indigo-600 md:w-4 md:h-4" /> Replenish Your Balance
                 </h4>
                 <p className="text-[11px] md:text-xs text-indigo-700 font-medium leading-relaxed mb-4 md:mb-6">
-                  You have <strong>0 Barter Hours</strong>. To leave a high-rated review and pay your mentor, please add a new skill you can teach. Or tap 1-3 stars for free feedback.
+                  You have <strong>0 Barter Hours</strong>. To leave a rating of 2.0★ or higher and pay your mentor, please add a new skill you can teach. Or tap below 2.0★ for free constructive feedback.
                 </p>
                 <button 
                   type="button"
@@ -448,9 +447,9 @@ export default function Messenger({ state, setters, chatEndRef, actions }: any) 
             ) : (
               <form onSubmit={handleSubmitReview} className="animate-in fade-in duration-300">
                 <div className="bg-indigo-50 border border-indigo-100 rounded-xl md:rounded-2xl p-3 md:p-4 text-[10px] md:text-xs text-indigo-700 font-bold mb-4 md:mb-6">
-                  💡 {reviewRating < 4 
-                    ? "Constructive Feedback: Ratings below 4★ are always free and do not deduct hours." 
-                    : `Barter Exchange: Rating 4★ or 5★ transfers 1 Barter Hour from you to ${livePartner.name}.`
+                  💡 {reviewRating < 2 
+                    ? "Constructive Feedback: Ratings below 2.0★ are always free and do not deduct hours." 
+                    : `Barter Exchange: Rating 2.0★ or higher transfers 1 Barter Hour from you to ${livePartner.name}.`
                   }
                 </div>
                 <textarea 

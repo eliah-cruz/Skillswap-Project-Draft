@@ -111,7 +111,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
     }
   };
 
-  const isMyRatingLow = state.myRating < 4.0 && state.myReviewCount > 0;
+  const isMyRatingLow = state.myRating < 2.0 && state.myReviewCount > 0;
 
   return (
     <section className="container mx-auto px-4 md:px-5 py-6 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -227,14 +227,13 @@ export default function DashboardHub({ state, setters, actions }: any) {
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 md:gap-6 items-start">
                 {paginatedMatches.map((m: any) => {
                   const isNewMember = m.reviewCount === 0;
-                  const isLowRated = m.rating < 4.0 && m.reviewCount > 0;
+                  const isLowRated = m.rating < 2.0 && m.reviewCount > 0;
                   const isHighRated = m.rating >= 4.5 && m.reviewCount > 0;
                   
                   let cardBorderClass = "border-slate-100";
                   let cardBgClass = "bg-white";
                   let cardGlowEffect = "";
 
-                  // Accurate visual tagging decoupled from just Recommended tab
                   if (isLowRated) {
                     cardBorderClass = "border-red-300";
                     cardBgClass = "bg-red-50/10";
@@ -293,7 +292,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                       </div>
                     ) : null}
 
-                    {/* Increased Font Size Body Layout */}
+                    {/* Card Body */}
                     <div className="p-5 md:p-6 flex-1 flex flex-col relative text-left">
                       
                       {/* Desktop Badge */}
@@ -388,7 +387,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                           <p className="text-[12px] md:text-[14px] text-slate-500 italic leading-relaxed line-clamp-2 md:group-hover:line-clamp-none transition-all pl-2.5">"{safeBio}"</p>
                         </div>
 
-                        {/* Side-by-Side Teaching / Learning Layout (Readable) */}
+                        {/* Side-by-Side Teaching / Learning Layout */}
                         <div className="flex flex-row gap-2.5 md:gap-3 mb-4">
                             <div className={`flex-1 p-3 rounded-xl md:rounded-2xl border text-left relative overflow-hidden transition-colors ${isLowRated ? 'bg-red-50/30 border-red-100' : m.isMutualMatch ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-100 group-hover:bg-indigo-50/30'}`}>
                                 <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1 relative z-10 ${isLowRated ? 'text-red-600' : 'text-indigo-600'}`}><BookOpen size={12} /> Will Teach</p>
@@ -400,7 +399,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             </div>
                         </div>
 
-                        {/* Circular Match Diagram (Green Themed) */}
+                        {/* Circular Match Diagram */}
                         {m.isCircularMatch && (
                           <div className="mb-4 p-3.5 bg-emerald-50/70 border border-emerald-300 rounded-xl md:rounded-2xl text-left animate-in slide-in-from-top-2 overflow-x-auto no-scrollbar block shadow-inner">
                             <p className="text-[10px] md:text-[11px] font-black uppercase text-emerald-800 tracking-wider mb-2.5 flex items-center gap-1.5">
@@ -576,24 +575,24 @@ export default function DashboardHub({ state, setters, actions }: any) {
                       <Coins size={12} className="fill-amber-400 shrink-0" />
                       <span className="text-[9px] md:text-[10px] font-black tracking-widest">{state.hoursBalance} HR</span>
                       
-                      {/* Desktop Absolute Tooltip (Hidden on mobile) */}
+                      {/* Desktop Absolute Tooltip */}
                       <div className="absolute hidden sm:block right-0 top-10 w-64 bg-slate-950 text-white p-4 rounded-xl shadow-xl opacity-0 scale-95 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-hover:scale-100 transition-all duration-200 text-left z-50 text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800">
                         💡 How Your Time-Bank Works:<br />
-                        • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
-                        • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
-                        • <b>Constructive Reviews:</b> Reviews between 1★ and 3★ are always <b>FREE</b> and do not deduct any hours.
+                        • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 2.0★ or higher review for your session, you get 1 Hour.<br />
+                        • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 2.0★ or higher review transfers 1 Hour from your balance to theirs.<br />
+                        • <b>Constructive Reviews:</b> Reviews below 2.0★ are always <b>FREE</b> and do not deduct any hours.
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Mobile Tooltip (Relative accordion - renders inline on mobile under the header, completely preventing overlap/clip) */}
+                {/* Mobile Tooltip */}
                 {showHoursTooltip && (
                   <div className="sm:hidden block bg-slate-950 text-white p-4 rounded-2xl text-left text-[9px] md:text-[10px] font-bold leading-relaxed border border-slate-800 mb-6 animate-in slide-in-from-top-2 duration-200">
                     💡 How Your Time-Bank Works:<br />
-                    • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 4★ or 5★ review for your session, you get 1 Hour.<br />
-                    • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 4★ or 5★ review transfers 1 Hour from your balance to theirs.<br />
-                    • <b>Constructive Reviews:</b> Reviews between 1★ and 3★ are always <b>FREE</b> and do not deduct any hours.
+                    • <b>Earn 1 Hour:</b> Teach a peer! When they leave a 2.0★ or higher review for your session, you get 1 Hour.<br />
+                    • <b>Spend 1 Hour:</b> Learn from a mentor! Submitting a 2.0★ or higher review transfers 1 Hour from your balance to theirs.<br />
+                    • <b>Constructive Reviews:</b> Reviews below 2.0★ are always <b>FREE</b> and do not deduct any hours.
                   </div>
                 )}
 
@@ -631,7 +630,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
             <div className="bg-white p-6 md:p-8 rounded-[2.5rem] md:rounded-[3rem] border-2 border-indigo-50 shadow-sm text-left">
                 <h4 className="font-black text-slate-900 mb-4 md:mb-6 text-[11px] md:text-[12px] uppercase tracking-widest flex items-center gap-1.5 md:gap-2"><ShieldAlert size={14} className="text-red-500 md:w-4 md:h-4" /> Blocked Users</h4>
                 
-                {/* ADDED pb-20 to allow scrolling past floating mobile buttons */}
                 <div className="space-y-2.5 md:space-y-3 pb-20">
                   {blockedList.length > 0 ? (
                     blockedList.map((user: any) => {
@@ -657,7 +655,6 @@ export default function DashboardHub({ state, setters, actions }: any) {
                             </div>
                           </div>
                           
-                          {/* Right side icon/button (Shrink-0 to prevent compression) */}
                           <div className="shrink-0 relative z-10 pl-1 border-l border-slate-200/50">
                             {isReported ? (
                                 <div className="p-1.5 md:p-2 bg-slate-100 text-slate-400 rounded-md md:rounded-lg border border-slate-200 ml-1" title="Locked: Safety Review">
@@ -685,7 +682,7 @@ export default function DashboardHub({ state, setters, actions }: any) {
         </aside>
       </div>
 
-      {/* Centered Member Reviews Modal (Resolves scrolling issue) */}
+      {/* Centered Member Reviews Modal */}
       {activeReviewsMember && (
         <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 md:p-6 bg-slate-900/80 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] md:rounded-[3rem] w-full max-w-xl p-6 md:p-8 shadow-2xl relative max-h-[85vh] md:max-h-[85vh] flex flex-col overflow-hidden text-left">

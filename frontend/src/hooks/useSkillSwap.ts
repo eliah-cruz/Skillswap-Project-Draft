@@ -4,9 +4,11 @@ import { supabase } from "../lib/supabase";
 import { io, Socket } from "socket.io-client";
 import { Match, Message, UserProfile, UserSettings } from "../types";
 
+// Global WebSocket instance
 let socket: Socket | null = null;
 
 export function useSkillSwap() {
+  // Authentication & session flow states
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -14,26 +16,32 @@ export function useSkillSwap() {
   const [isLoginView, setIsLoginView] = useState(false);
   const [showBioStep, setShowBioStep] = useState(false);
   
+  // Active user details
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState("User");
   const [userEmail, setUserEmail] = useState("");
   
-  // Custom auth verification loader states
+  // Authentication verification loader feedback
   const [isVerifyingAuth, setIsVerifyingAuth] = useState(false);
   const [authStatusMessage, setAuthStatusMessage] = useState("");
   const [authSuccess, setAuthSuccess] = useState(false);
 
+  // Runtime references
   const loadedUserIdRef = useRef<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Database State
+  // User skill profiles & lookup maps
   const [mySkills, setMySkills] = useState<string[]>([]);
   const [myNeeds, setMyNeeds] = useState<string[]>([]);
   const [skillDictionary, setSkillDictionary] = useState<Record<string, string>>({}); 
   const [skillCategoryMap, setSkillCategoryMap] = useState<Record<string, string>>({}); 
+
+  // Moderation & safety lists
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [reportedUsers, setReportedUsers] = useState<string[]>([]); 
-  const [reportedDetails, setReportedDetails] = useState<Record<string, string>>({}); // NEW: Tracks report reasons
+  const [reportedDetails, setReportedDetails] = useState<Record<string, string>>({}); 
+
+  // Peer records, messaging history & time-bank balance
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [activeChatIDs, setActiveChatIDs] = useState<string[]>([]);
   const [chatHistory, setChatHistory] = useState<Record<string, Message[]>>({});
@@ -45,7 +53,7 @@ export function useSkillSwap() {
 
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
-  // Strict verification: user must configure both teachable and desired skills to proceed
+  // Profile completion & verification checks
   const hasSkillsConfigured = useMemo(() => {
     return mySkills.length > 0 && myNeeds.length > 0;
   }, [mySkills, myNeeds]);
@@ -53,21 +61,21 @@ export function useSkillSwap() {
   const isVerified = useMemo(() => mySkills.length >= 3, [mySkills]);
   const isAdmin = useMemo(() => userEmail === ADMIN_EMAIL, [userEmail, ADMIN_EMAIL]);
   
-  // UI State
+  // Application view & layout controls
   const [showScroll, setShowScroll] = useState(false);
   const [showDirectory, setShowDirectory] = useState(false);
   const [addingSkillType, setAddingSkillType] = useState<'teaching' | 'learning'>('teaching');
   const [activeTab, setActiveTab] = useState("hub");
   const [showChat, setShowChat] = useState(false);
   
-  // Chat State
+  // Realtime messaging session state
   const [activeChatPartner, setActiveChatPartner] = useState<Match | null>(null);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [chatInput, setChatInput] = useState("");
   
-  // Filters & Toast
+  // Search, filtering, onboarding & notification toasts
   const [onboardingCategory, setOnboardingCategory] = useState<any>(null);
   const [onlineOnly, setOnlineOnly] = useState(false);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState("All");
@@ -75,14 +83,17 @@ export function useSkillSwap() {
   const [sortBy, setSortBy] = useState("Recommended");
   const [toast, setToast] = useState<string | null>(null);
 
+  // User profile metadata
   const [userProfile, setUserProfile] = useState<UserProfile>({
     bio: "", title: "SkillSwapper", location: "Philippines", experienceLevel: "Beginner", availability: "Flexible"
   });
 
+  // Account privacy & alert preferences
   const [userSettings, setUserSettings] = useState<UserSettings>({
     emailNotifications: true, showOnlineStatus: true, profileVisibility: 'Public'
   });
 
+  // Toast notification helper
   const triggerToast = (msg: string) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
@@ -94,6 +105,7 @@ export function useSkillSwap() {
     }, 3000);
   };
 
+  // Socket connection manager
   const getSocket = (): Socket | null => {
     if (typeof window === "undefined") return null;
     if (!socket || !socket.connected) {
@@ -102,7 +114,72 @@ export function useSkillSwap() {
     return socket;
   };
 
-  // Auth Changes subscription
+  // Auth session initializer
+  const initSession = async (session: any, event?: string) => {
+    if (!session) {
+      setIsLoggedIn(false);
+      setUserId(null);
+      setUserEmail("");
+      loadedUserIdRef.current = null;
+      setLoading(false);
+      setIsVerifyingAuth(false);
+      return;
+    }
+
+    // Prevent duplicate loads for active user session
+    if (loadedUserIdRef.current === session.user.id) {
+      return;
+    }
+
+    loadedUserIdRef.current = session.user.id;
+    setIsLoggedIn(true);
+    setUserId(session.user.id);
+    setUserEmail(session.user.email || "");
+
+    // Trigger verification sequence only on direct Magic Link token entry
+    const isMagicLinkClick = typeof window !== "undefined" && (
+      window.location.hash.includes("access_token") || 
+      window.location.search.includes("code=") ||
+      window.location.search.includes("type=magiclink")
+    );
+
+    if (event === 'SIGNED_IN' && isMagicLinkClick) {
+      setIsVerifyingAuth(true);
+      setAuthSuccess(false);
+      setAuthStatusMessage("Validating authentication credentials...");
+      await new Promise(resolve => setTimeout(resolve, 600));
+      setAuthStatusMessage("Securing peer-to-peer workspace session...");
+      await new Promise(resolve => setTimeout(resolve, 600));
+      setAuthStatusMessage("Magic Link verified! Setting up dashboard...");
+      setAuthSuccess(true);
+      await new Promise(resolve => setTimeout(resolve, 800));
+      setIsVerifyingAuth(false);
+    } else {
+      setIsVerifyingAuth(false);
+    }
+
+    setActiveTab(session.user.email === ADMIN_EMAIL ? "admin" : "hub");
+
+    const s = getSocket();
+    if (s) {
+      s.emit("register_user", session.user.id);
+    }
+
+    const { data: settings } = await supabase
+      .from('user_settings')
+      .select('show_online_status')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (!settings || settings.show_online_status !== false) {
+      await supabase.from('users').update({ is_online: true }).eq('user_id', session.user.id);
+    }
+
+    await loadFullDatabaseState(session.user.id, session.user.email || "", session.user, true);
+    setLoading(false);
+  };
+
+  // Session listener & scroll handler
   useEffect(() => {
     const handleScroll = () => setShowScroll(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
@@ -110,15 +187,8 @@ export function useSkillSwap() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setIsLoggedIn(true);
-        setUserId(session.user.id);
-        setUserEmail(session.user.email || "");
-        
-        const s = getSocket();
-        if (s) s.emit("register_user", session.user.id);
-        
-        await loadFullDatabaseState(session.user.id, session.user.email || "", session.user, true);
-        loadedUserIdRef.current = session.user.id;
+        await initSession(session);
+      } else {
         setLoading(false);
       }
     };
@@ -127,52 +197,14 @@ export function useSkillSwap() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        const isSameUser = loadedUserIdRef.current === session.user.id;
-        
-        if (event === 'SIGNED_IN' && !isSameUser) {
-          setIsVerifyingAuth(true);
-          setAuthSuccess(false);
-          setAuthStatusMessage("Validating authentication credentials...");
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          setAuthStatusMessage("Securing peer-to-peer workspace session...");
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          setAuthStatusMessage("Magic Link verified! Setting up dashboard...");
-          setAuthSuccess(true);
-          await new Promise(resolve => setTimeout(resolve, 1200));
-          setIsVerifyingAuth(false);
-        }
-
-        setIsLoggedIn(true);
-        setUserId(session.user.id);
-        setUserEmail(session.user.email || "");
-        
-        if (!isSameUser) {
-          setActiveTab(session.user.email === ADMIN_EMAIL ? "admin" : "hub");
-          
-          const { data: settings } = await supabase
-            .from('user_settings')
-            .select('show_online_status')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-          if (!settings || settings.show_online_status !== false) {
-            await supabase.from('users').update({ is_online: true }).eq('user_id', session.user.id);
-          }
-        }
-        
-        const s = getSocket();
-        if (s) {
-          s.emit("register_user", session.user.id);
-        }
-        
-        await loadFullDatabaseState(session.user.id, session.user.email || "", session.user, isSameUser);
-        loadedUserIdRef.current = session.user.id;
-      } else {
+        await initSession(session, event);
+      } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setUserId(null);
         setUserEmail("");
         loadedUserIdRef.current = null;
         setLoading(false);
+        setIsVerifyingAuth(false);
       }
     });
 
@@ -182,7 +214,7 @@ export function useSkillSwap() {
     };
   }, []);
 
-  // WebSockets Chat, Message, and Typing status observers
+  // Realtime messaging & socket event listeners
   useEffect(() => {
     const s = getSocket();
     if (!s || !userId) return;
@@ -276,7 +308,7 @@ export function useSkillSwap() {
     };
   }, [userId, activeChatPartner, showChat, currentMatchId]);
 
-  // Real-Time profile and dynamic skill synchronization
+  // Database subscription for profile & skill updates
   useEffect(() => {
     if (!userId) return;
 
@@ -332,6 +364,7 @@ export function useSkillSwap() {
     };
   }, [userId, userEmail]);
 
+  // Primary database loader
   const loadFullDatabaseState = async (uid: string, email: string, authUser?: any, silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -354,7 +387,7 @@ export function useSkillSwap() {
         supabase.from('teachable_skills').select('skills(skill_name)').eq('user_id', uid),
         supabase.from('desired_skills').select('skills(skill_name)').eq('user_id', uid),
         supabase.from('blocks').select('blocked_id').eq('blocker_id', uid),
-        supabase.from('reports').select('reported_id, reason').eq('reporter_id', uid).neq('status', 'Dismissed'), // Fetches exact report reasons
+        supabase.from('reports').select('reported_id, reason').eq('reporter_id', uid).neq('status', 'Dismissed'),
         supabase.from('messages').select('message_id, sender_id').eq('is_read', false).neq('sender_id', uid),
         supabase.from('matches').select('*').or(`and(mentor_id.eq.${uid}),and(student_id.eq.${uid})`),
         supabase.from('users').select(`*, teachable_skills(skills(skill_name)), desired_skills(skills(skill_name))`).neq('user_id', uid).neq('email', ADMIN_EMAIL),
@@ -418,7 +451,6 @@ export function useSkillSwap() {
       const reportedList = userReports ? userReports.map(r => r.reported_id) : [];
       setReportedUsers(reportedList);
 
-      // Store specific reasons in state mapping for the UI
       const reasonsMap: Record<string, string> = {};
       if (userReports) {
           userReports.forEach(r => {
@@ -516,6 +548,7 @@ export function useSkillSwap() {
     }
   };
 
+  // Login & Sign-up submit handler
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -556,6 +589,7 @@ export function useSkillSwap() {
     else triggerToast("Magic link sent! Check your inbox.");
   };
 
+  // User logout
   const handleLogout = async () => {
     setIsLoggingOut(true);
     if(userId) await supabase.from('users').update({ is_online: false }).eq('user_id', userId);
@@ -563,6 +597,7 @@ export function useSkillSwap() {
     window.location.reload(); 
   };
 
+  // Add teachable skill
   const addSkill = async (skill: string) => {
     if(!userId) return;
     if (mySkills.length >= 5) {
@@ -580,6 +615,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Remove teachable skill
   const removeSkill = async (skill: string) => {
     if(!userId) return;
     const skillId = skillDictionary[skill];
@@ -589,6 +625,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Add desired skill
   const addNeed = async (skill: string) => {
     if(!userId) return;
     if (myNeeds.length >= 5) {
@@ -606,6 +643,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Remove desired skill
   const removeNeed = async (skill: string) => {
     if(!userId) return;
     const skillId = skillDictionary[skill];
@@ -615,6 +653,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Update profile details
   const saveProfile = async (newData: Partial<UserProfile> & { name?: string }, silent = false) => {
     if (!userId) return;
 
@@ -662,6 +701,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Save account settings
   const saveSettings = async (newData: Partial<UserSettings>) => {
     if (!userId) return;
     const merged = { ...userSettings, ...newData };
@@ -685,6 +725,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Initialize or open direct chat session
   const openSpecificChat = async (partner: Match) => {
     setActiveChatPartner(partner);
     setShowChat(true);
@@ -755,6 +796,7 @@ export function useSkillSwap() {
     }
   };
 
+  // Send text message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || !activeChatPartner || !currentMatchId || !userId) return;
@@ -778,6 +820,7 @@ export function useSkillSwap() {
     }));
   };
 
+  // Send file attachment
   const handleSendFile = async (fileData: { type: 'file', fileName: string, fileUrl: string }) => {
     if (!activeChatPartner || !currentMatchId || !userId) return;
 
@@ -799,6 +842,7 @@ export function useSkillSwap() {
     }));
   };
 
+  // Delete chat conversation
   const deleteConversation = async (partnerId: string) => {
     if(!userId) return;
     
@@ -827,6 +871,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Block user
   const blockUser = async (partnerId: string) => {
     if(!userId) return;
     await supabase.from('blocks').insert([{ blocker_id: userId, blocked_id: partnerId }]);
@@ -835,6 +880,7 @@ export function useSkillSwap() {
     triggerToast("User blocked.");
   };
 
+  // Unblock user
   const unblockUser = async (partnerId: string) => {
     if(!userId) return;
     
@@ -855,6 +901,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Report user
   const reportUser = async (reportedId: string, reason: string = 'Other') => {
     if(!userId) return;
     
@@ -862,7 +909,7 @@ export function useSkillSwap() {
     await supabase.from('blocks').insert([{ blocker_id: userId, blocked_id: reportedId }]);
     
     setReportedUsers(prev => [...prev, reportedId]);
-    setReportedDetails(prev => ({ ...prev, [reportedId]: reason })); // Instantly save reason to state
+    setReportedDetails(prev => ({ ...prev, [reportedId]: reason }));
 
     if (!blockedUsers.includes(reportedId)) {
       setBlockedUsers(prev => [...prev, reportedId]);
@@ -905,6 +952,7 @@ export function useSkillSwap() {
     await loadFullDatabaseState(userId, userEmail, null, true);
   };
 
+  // Resolve or dismiss report (Admin)
   const resolveReport = async (reportId: string, status: 'Resolved' | 'Dismissed' = 'Resolved', reporterId?: string, reportedId?: string) => {
     const { error } = await supabase
       .from('reports')
@@ -935,19 +983,21 @@ export function useSkillSwap() {
     }
   };
 
+  // Submit review and update hour balance (>= 2.0★ transfers 1 Barter Hour)
   const submitReview = async (revieweeId: string, rating: number, comment: string) => {
     if(!userId || !currentMatchId) return;
 
-    if (rating >= 4 && hoursBalance <= 0) {
-      triggerToast("Transaction Blocked: Writing a high-rated review requires 1 Barter Hour.");
+    if (rating >= 2 && hoursBalance <= 0) {
+      triggerToast("Transaction Blocked: Writing a review (2.0★ or higher) requires 1 Barter Hour.");
       return;
     }
 
     await supabase.from('reviews').insert([{ match_id: currentMatchId, reviewer_id: userId, reviewee_id: revieweeId, rating, comment }]);
-    triggerToast(rating < 4 ? "Constructive feedback saved! Your balance remains unchanged." : "Feedback submitted successfully! 1 hour transferred.");
+    triggerToast(rating < 2 ? "Constructive feedback saved! Your balance remains unchanged." : "Feedback submitted successfully! 1 hour transferred.");
     await loadFullDatabaseState(userId, userEmail, null, true); 
   };
 
+  // Broadcast typing status
   const handleTyping = (isTyping: boolean) => {
     const s = getSocket();
     if (s && currentMatchId) {
@@ -955,13 +1005,14 @@ export function useSkillSwap() {
     }
   };
 
+  // Filter and score matches (low rating default cutoff: >= 2.0★)
   const filteredMatches = useMemo(() => {
     let scoredResults = allMatches
       .filter(m => !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id))
       .filter(m => {
         const isSearching = searchQuery.trim() !== "";
         if (isSearching) return true; 
-        return m.rating >= 4.0; 
+        return m.rating >= 2.0; 
       })
       .map(person => {
         const mySkillsLower = mySkills.map(s => s.toLowerCase());
@@ -1037,6 +1088,7 @@ export function useSkillSwap() {
     return scoredResults;
   }, [allMatches, mySkills, myNeeds, onlineOnly, activeCategoryFilter, searchQuery, sortBy, onboardingCategory, blockedUsers, reportedUsers]);
 
+  // Active chat user list
   const activeChatUsers = useMemo(() => {
     return allMatches.filter(m => activeChatIDs.includes(m.id) && !blockedUsers.includes(m.id) && !reportedUsers.includes(m.id));
   }, [activeChatIDs, blockedUsers, reportedUsers, allMatches]);
@@ -1073,7 +1125,6 @@ export function useSkillSwap() {
       
       let nameToSave = userName;
       let skillsToSave: string[] = [];
-      let desiredSkillsToSave: string[] = [];
 
       if (typeof arg1 === 'object' && arg1 !== null) {
         nameToSave = arg1.name || userName;
@@ -1082,9 +1133,6 @@ export function useSkillSwap() {
         nameToSave = arg2;
         if (Array.isArray(arg3)) {
           skillsToSave = arg3;
-        }
-        if (Array.isArray(arg4)) {
-          desiredSkillsToSave = arg4;
         }
       }
 
